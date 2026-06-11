@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RadioGraphics Reader</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg:        #0d1117;
+    --surface:   #161b22;
+    --surface2:  #1c2230;
+    --border:    #2a3444;
+    --accent:    #00d4c8;
+    --accent2:   #0099ff;
+    --warn:      #f59e0b;
+    --error:     #ef4444;
+    --success:   #22c55e;
+    --text:      #e6edf3;
+    --muted:     #7d8fa0;
+    --mono:      'JetBrains Mono', monospace;
+    --sans:      'Inter', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ── Header ── */
+  header {
+    padding: 24px 32px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .header-ecg {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 28px;
+    opacity: 0.18;
+  }
+
+  .header-top {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .logo-badge {
+    width: 38px; height: 38px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  h1 {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+
+  h1 span {
+    color: var(--accent);
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 2px;
+  }
+
+  /* ── Layout ── */
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 28px 24px;
+  }
+
+  /* ── Section blocks ── */
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 18px;
+    overflow: hidden;
+  }
+
+  .section-header {
+    padding: 13px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface2);
+  }
+
+  .section-icon {
+    width: 24px; height: 24px;
+    border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+
+  .icon-blue  { background: rgba(0,153,255,0.15); color: var(--accent2); }
+  .icon-teal  { background: rgba(0,212,200,0.12); color: var(--accent);  }
+  .icon-amber { background: rgba(245,158,11,0.12); color: var(--warn);   }
+  .icon-green { background: rgba(34,197,94,0.12);  color: var(--success);}
+
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .section-body { padding: 16px 18px; }
+
+  /* ── API key inputs ── */
+  .key-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  @media (max-width: 600px) {
+    .key-grid { grid-template-columns: 1fr; }
+  }
+
+  .field { display: flex; flex-direction: column; gap: 5px; }
+
+  .field label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .field input, .field select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 11px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .field input:focus, .field select:focus {
+    border-color: var(--accent);
+  }
+
+  .field input::placeholder { color: var(--muted); opacity: 0.6; }
+
+  .field-note {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  /* ── Upload zone ── */
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    padding: 36px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--bg);
+    position: relative;
+  }
+
+  .upload-zone:hover, .upload-zone.dragover {
+    border-color: var(--accent);
+    background: rgba(0,212,200,0.04);
+  }
+
+  .upload-zone input[type="file"] {
+    position: absolute; inset: 0;
+    opacity: 0; cursor: pointer;
+  }
+
+  .upload-icon { font-size: 32px; margin-bottom: 10px; }
+
+  .upload-title {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .upload-hint { color: var(--muted); font-size: 12px; }
+
+  .file-info {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: rgba(0,212,200,0.06);
+    border: 1px solid rgba(0,212,200,0.2);
+    border-radius: 7px;
+    margin-top: 12px;
+  }
+
+  .file-info.visible { display: flex; }
+
+  .file-name {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .file-size { font-size: 11px; color: var(--muted); }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 18px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: var(--sans);
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #000;
+    font-weight: 600;
+  }
+
+  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-line {
+    background: #1a73e8;
+    color: #fff;
+    font-weight: 600;
+  }
+  .btn-line:hover { background: #1557b0; }
+  .btn-line:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .action-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+  }
+
+  /* ── Progress ── */
+  .progress-wrap {
+    display: none;
+    margin-top: 14px;
+  }
+  .progress-wrap.visible { display: block; }
+
+  .step-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    font-size: 12px;
+    transition: all 0.3s;
+  }
+
+  .step.active  { border-color: var(--accent2); background: rgba(0,153,255,0.06); }
+  .step.done    { border-color: var(--success);  background: rgba(34,197,94,0.05); }
+  .step.failed  { border-color: var(--error);    background: rgba(239,68,68,0.05); }
+  .step.skipped { opacity: 0.45; }
+
+  .step-dot {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    flex-shrink: 0;
+    transition: all 0.3s;
+  }
+  .step.active  .step-dot { border-color: var(--accent2); animation: pulse 1.2s infinite; }
+  .step.done    .step-dot { border-color: var(--success); background: var(--success); color: #000; }
+  .step.failed  .step-dot { border-color: var(--error); background: var(--error); color: #fff; }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(0,153,255,0.4); }
+    50%       { box-shadow: 0 0 0 4px rgba(0,153,255,0); }
+  }
+
+  .step-label { color: var(--text); }
+  .step-note  { margin-left: auto; font-size: 11px; color: var(--muted); }
+
+  /* ── Results ── */
+  #results { display: none; }
+  #results.visible { display: block; }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  @media (max-width: 600px) {
+    .summary-grid { grid-template-columns: 1fr; }
+  }
+
+  .meta-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 12px 14px;
+  }
+
+  .meta-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  .meta-value {
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .meta-value.accent { color: var(--accent); }
+
+  /* report block */
+  .report-block {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 16px;
+    margin-bottom: 10px;
+  }
+
+  .report-block h3 {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--accent);
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .report-block p, .report-block li {
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--text);
+  }
+
+  .report-block ul, .report-block ol {
+    padding-left: 18px;
+  }
+
+  .report-block li { margin-bottom: 3px; }
+
+  .tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  .tag {
+    padding: 3px 9px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: var(--mono);
+    background: rgba(0,212,200,0.1);
+    color: var(--accent);
+    border: 1px solid rgba(0,212,200,0.2);
+  }
+
+  /* ── Audio player ── */
+  .audio-wrap {
+    display: none;
+    margin-top: 10px;
+  }
+  .audio-wrap.visible { display: block; }
+
+  audio {
+    width: 100%;
+    border-radius: 6px;
+    accent-color: var(--accent);
+  }
+
+  /* ── Inline toggle ── */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-top: 1px solid var(--border);
+    margin-top: 10px;
+  }
+
+  .toggle {
+    position: relative;
+    width: 34px; height: 18px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .toggle input { display: none; }
+
+  .toggle-track {
+    position: absolute; inset: 0;
+    background: var(--border);
+    border-radius: 9px;
+    transition: background 0.2s;
+  }
+
+  .toggle input:checked + .toggle-track { background: var(--accent); }
+
+  .toggle-thumb {
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 14px; height: 14px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.2s;
+  }
+
+  .toggle input:checked ~ .toggle-thumb { transform: translateX(16px); }
+
+  .toggle-label { font-size: 12px; color: var(--text); }
+  .toggle-note  { font-size: 11px; color: var(--muted); margin-left: auto; }
+
+  /* ── Error / info toast ── */
+  .toast {
+    display: none;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    margin-top: 10px;
+    line-height: 1.5;
+  }
+  .toast.error   { display: block; background: rgba(239,68,68,0.1);  border: 1px solid rgba(239,68,68,0.3);  color: #fca5a5; }
+  .toast.success { display: block; background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.25); color: #86efac; }
+  .toast.info    { display: block; background: rgba(0,153,255,0.08); border: 1px solid rgba(0,153,255,0.2);  color: #93c5fd; }
+
+  /* ── Raw text area ── */
+  .raw-toggle {
+    font-size: 11px;
+    color: var(--muted);
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    margin-top: 8px;
+    display: inline-block;
+  }
+  .raw-toggle:hover { color: var(--accent); }
+
+  textarea.raw {
+    display: none;
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 10px;
+    resize: vertical;
+    min-height: 80px;
+    margin-top: 8px;
+    outline: none;
+  }
+  textarea.raw.visible { display: block; }
+
+  /* ECG animation */
+  .ecg-path {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+    animation: ecg-draw 3s linear infinite;
+  }
+  @keyframes ecg-draw {
+    to { stroke-dashoffset: 0; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div class="logo-badge">📡</div>
+    <div>
+      <h1>RadioGraphics <span>Reader</span></h1>
+      <div class="subtitle">PDF → Claude Summary → Audio → Google Drive</div>
+    </div>
+  </div>
+  <svg class="header-ecg" viewBox="0 0 900 28" preserveAspectRatio="none" fill="none">
+    <path class="ecg-path" d="M0,14 L80,14 L100,14 L110,2 L120,26 L130,8 L140,14 L200,14 L220,14 L230,3 L240,25 L250,7 L260,14 L400,14 L420,14 L430,2 L440,26 L450,8 L460,14 L600,14 L620,14 L630,3 L640,25 L650,7 L660,14 L800,14 L820,14 L830,2 L840,26 L850,8 L860,14 L900,14"
+      stroke="#00d4c8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+</header>
+
+<div class="container">
+
+  <!-- API Keys -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon icon-blue">🔑</div>
+      <div class="section-title">API Configuration</div>
+    </div>
+    <div class="section-body">
+      <div class="key-grid">
+        <div class="field">
+          <label>Anthropic API Key</label>
+          <input type="password" id="anthropicKey" placeholder="sk-ant-api03-..." autocomplete="off">
+          <div class="field-note">Required — for PDF → summary</div>
+        </div>
+        <div class="field">
+          <label>OpenAI API Key <span style="color:var(--warn);font-size:10px;margin-left:4px">optional</span></label>
+          <input type="password" id="openaiKey" placeholder="sk-proj-..." autocomplete="off">
+          <div class="field-note">For TTS audio generation (gpt-4o-mini-tts)</div>
+        </div>
+        <div class="field">
+          <label>Google Client ID <span style="color:var(--warn);font-size:10px;margin-left:4px">optional</span></label>
+          <input type="text" id="gClientId" placeholder="xxxxxxxxxx.apps.googleusercontent.com" autocomplete="off">
+          <div class="field-note">From Google Cloud Console → OAuth 2.0 Client ID</div>
+        </div>
+        <div class="field">
+          <label>Drive Folder ID <span style="color:var(--warn);font-size:10px;margin-left:4px">optional</span></label>
+          <input type="text" id="gFolderId" placeholder="Leave blank for My Drive root" autocomplete="off">
+          <div class="field-note">Last segment of the folder URL, or leave blank for root</div>
+        </div>
+        <div class="field">
+          <label>TTS Voice</label>
+          <select id="ttsVoice">
+            <option value="alloy">Alloy (neutral)</option>
+            <option value="echo">Echo (male)</option>
+            <option value="fable">Fable (storytelling)</option>
+            <option value="onyx">Onyx (deep male)</option>
+            <option value="nova" selected>Nova (female)</option>
+            <option value="shimmer">Shimmer (soft female)</option>
+          </select>
+          <div class="field-note">OpenAI TTS voice selection</div>
+        </div>
+      </div>
+
+      <div class="toggle-row">
+        <label class="toggle">
+          <input type="checkbox" id="enableAudio" checked>
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>
+        <span class="toggle-label">Generate audio</span>
+        <span class="toggle-note">Requires OpenAI key</span>
+      </div>
+
+      <div class="toggle-row" style="border-top:none;padding-top:0">
+        <label class="toggle">
+          <input type="checkbox" id="enableDrive" checked>
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>
+        <span class="toggle-label">Save to Google Drive</span>
+        <span class="toggle-note">Requires Google Client ID</span>
+      </div>
+      <div style="margin-top:10px">
+        <button class="btn btn-secondary" id="gSignInBtn" onclick="googleSignIn()" style="display:none">
+          <svg width="14" height="14" viewBox="0 0 24 24" style="margin-right:2px"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          Sign in with Google
+        </button>
+        <span id="gSignedInAs" style="font-size:12px;color:var(--success);display:none"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon icon-teal">📄</div>
+      <div class="section-title">Upload RadioGraphics PDF</div>
+    </div>
+    <div class="section-body">
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="pdfInput" accept=".pdf">
+        <div class="upload-icon">📋</div>
+        <div class="upload-title">Drop PDF here or click to browse</div>
+        <div class="upload-hint">RadioGraphics article PDF — max 32 MB</div>
+      </div>
+      <div class="file-info" id="fileInfo">
+        <span>📄</span>
+        <span class="file-name" id="fileName"></span>
+        <span class="file-size" id="fileSize"></span>
+      </div>
+      <div class="action-row">
+        <button class="btn btn-primary" id="runBtn" disabled onclick="runPipeline()">
+          ▶ Run Pipeline
+        </button>
+        <button class="btn btn-secondary" id="clearBtn" onclick="clearAll()" disabled>
+          ✕ Clear
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div class="section progress-wrap" id="progressWrap">
+    <div class="section-header">
+      <div class="section-icon icon-amber">⚡</div>
+      <div class="section-title">Pipeline</div>
+    </div>
+    <div class="section-body">
+      <div class="step-list">
+        <div class="step" id="step-read">
+          <div class="step-dot"></div>
+          <span class="step-label">Reading PDF</span>
+          <span class="step-note" id="note-read"></span>
+        </div>
+        <div class="step" id="step-claude">
+          <div class="step-dot"></div>
+          <span class="step-label">Claude — structured summary</span>
+          <span class="step-note" id="note-claude"></span>
+        </div>
+        <div class="step" id="step-audio">
+          <div class="step-dot"></div>
+          <span class="step-label">OpenAI TTS — audio generation</span>
+          <span class="step-note" id="note-audio"></span>
+        </div>
+        <div class="step" id="step-line">
+          <div class="step-dot"></div>
+          <span class="step-label">Google Drive — save summary</span>
+          <span class="step-note" id="note-line"></span>
+        </div>
+      </div>
+      <div id="pipelineToast" class="toast"></div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="results">
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-icon icon-teal">📊</div>
+        <div class="section-title">Summary</div>
+      </div>
+      <div class="section-body">
+        <div class="summary-grid" id="metaGrid"></div>
+        <div id="summaryBody"></div>
+
+        <span class="raw-toggle" onclick="toggleRaw()">Show raw text</span>
+        <textarea class="raw" id="rawText" readonly></textarea>
+      </div>
+    </div>
+
+    <div class="section audio-wrap" id="audioSection">
+      <div class="section-header">
+        <div class="section-icon icon-amber">🔊</div>
+        <div class="section-title">Audio Summary</div>
+      </div>
+      <div class="section-body">
+        <audio id="audioPlayer" controls></audio>
+        <div style="margin-top:10px">
+          <a id="audioDownload" class="btn btn-secondary" download="summary.mp3">⬇ Download MP3</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-icon icon-green">↗</div>
+        <div class="section-title">Actions</div>
+      </div>
+      <div class="section-body">
+        <div class="action-row">
+          <button class="btn btn-line" id="lineRetryBtn" onclick="saveToDrive()" disabled>
+            ☁ Re-save to Drive
+          </button>
+          <button class="btn btn-secondary" onclick="copyText()">
+            📋 Copy Summary
+          </button>
+          <button class="btn btn-secondary" onclick="downloadSummary()">
+            ⬇ Download .txt
+          </button>
+        </div>
+        <div id="actionToast" class="toast"></div>
+      </div>
+    </div>
+
+  </div><!-- /results -->
+
+</div><!-- /container -->
+
+<script>
+// ── State ──────────────────────────────────────────────────────────
+let pdfFile = null;
+let summaryData = null;
+let audioBlob = null;
+let lineText = '';
+
+// ── File handling ─────────────────────────────────────────────────
+const uploadZone = document.getElementById('uploadZone');
+const pdfInput   = document.getElementById('pdfInput');
+
+['dragenter','dragover'].forEach(e => uploadZone.addEventListener(e, ev => {
+  ev.preventDefault(); uploadZone.classList.add('dragover');
+}));
+['dragleave','drop'].forEach(e => uploadZone.addEventListener(e, ev => {
+  ev.preventDefault(); uploadZone.classList.remove('dragover');
+  if (e === 'drop' && ev.dataTransfer.files[0]) handleFile(ev.dataTransfer.files[0]);
+}));
+
+pdfInput.addEventListener('change', () => {
+  if (pdfInput.files[0]) handleFile(pdfInput.files[0]);
+});
+
+function handleFile(file) {
+  if (!file.name.toLowerCase().endsWith('.pdf')) {
+    showActionToast('Only PDF files are supported.', 'error'); return;
+  }
+  if (file.size > 32 * 1024 * 1024) {
+    showActionToast('File exceeds 32 MB limit.', 'error'); return;
+  }
+  pdfFile = file;
+  document.getElementById('fileName').textContent = file.name;
+  document.getElementById('fileSize').textContent = (file.size / 1024).toFixed(0) + ' KB';
+  document.getElementById('fileInfo').classList.add('visible');
+  document.getElementById('runBtn').disabled = false;
+  document.getElementById('clearBtn').disabled = false;
+}
+
+function clearAll() {
+  pdfFile = null; summaryData = null; audioBlob = null; lineText = '';
+  pdfInput.value = '';
+  document.getElementById('fileInfo').classList.remove('visible');
+  document.getElementById('runBtn').disabled = true;
+  document.getElementById('clearBtn').disabled = false;
+  document.getElementById('progressWrap').classList.remove('visible');
+  document.getElementById('results').classList.remove('visible');
+  resetSteps();
+}
+
+// ── Pipeline ──────────────────────────────────────────────────────
+async function runPipeline() {
+  const anthropicKey = document.getElementById('anthropicKey').value.trim();
+  if (!anthropicKey) { showActionToast('Anthropic API key required.', 'error'); return; }
+  if (!pdfFile)       { showActionToast('Please upload a PDF first.', 'error'); return; }
+
+  const enableAudio = document.getElementById('enableAudio').checked;
+  const enableDrive = document.getElementById('enableDrive').checked;
+  const openaiKey   = document.getElementById('openaiKey').value.trim();
+
+  document.getElementById('runBtn').disabled = true;
+  document.getElementById('results').classList.remove('visible');
+  document.getElementById('progressWrap').classList.add('visible');
+  resetSteps();
+  clearPipelineToast();
+
+  // ── Step 1: Read PDF ──
+  setStep('read', 'active');
+  let base64PDF;
+  try {
+    base64PDF = await fileToBase64(pdfFile);
+    setStep('read', 'done', 'OK');
+  } catch(e) {
+    setStep('read', 'failed', 'Read error');
+    showPipelineToast('Failed to read PDF: ' + e.message, 'error');
+    document.getElementById('runBtn').disabled = false;
+    return;
+  }
+
+  // ── Step 2: Claude summary ──
+  setStep('claude', 'active');
+  let structured;
+  try {
+    structured = await callClaude(base64PDF, anthropicKey);
+    summaryData = structured;
+    setStep('claude', 'done', '~' + structured.wordCount + ' words');
+  } catch(e) {
+    setStep('claude', 'failed', e.message.slice(0,40));
+    showPipelineToast('Claude API error: ' + e.message, 'error');
+    document.getElementById('runBtn').disabled = false;
+    return;
+  }
+
+  // ── Step 3: TTS ──
+  if (enableAudio && openaiKey) {
+    setStep('audio', 'active', 'Generating script…');
+    try {
+      // Generate audio script via a lightweight second Claude call (no PDF needed)
+      const ttsText = await callClaudeAudioScript(structured, anthropicKey);
+      audioBlob = await callTTS(ttsText, openaiKey, document.getElementById('ttsVoice').value);
+      setStep('audio', 'done', (audioBlob.size / 1024).toFixed(0) + ' KB');
+      showAudio(audioBlob);
+    } catch(e) {
+      setStep('audio', 'failed', e.message.slice(0,40));
+    }
+  } else {
+    setStep('audio', 'skipped', enableAudio ? 'No OpenAI key' : 'Disabled');
+  }
+
+  // ── Step 4: Google Drive ──
+  lineText = buildSummaryText(structured);
+  const gClientId = document.getElementById('gClientId').value.trim();
+  const driveReady = gClientId && gAccessToken;
+
+  if (enableDrive && gClientId) {
+    setStep('line', 'active');
+    try {
+      if (!gAccessToken) {
+        // Try silent sign-in first, then interactive
+        await googleSignIn();
+      }
+      const fileUrl = await saveToDriveAPI(structured, lineText);
+      setStep('line', 'done', 'Saved ✓');
+      document.getElementById('lineRetryBtn').disabled = false;
+      document.getElementById('lineRetryBtn').innerHTML =
+        `<a href="${fileUrl}" target="_blank" style="color:inherit;text-decoration:none">☁ Open in Drive</a>`;
+    } catch(e) {
+      setStep('line', 'failed', e.message.slice(0, 40));
+    }
+  } else {
+    setStep('line', 'skipped', enableDrive ? (gClientId ? 'Sign in required' : 'No Client ID') : 'Disabled');
+    document.getElementById('lineRetryBtn').disabled = !gClientId;
+  }
+
+  renderResults(structured);
+  document.getElementById('runBtn').disabled = false;
+}
+
+// ── Claude API ───────────────────────────────────────────────────
+// NOTE: audioScript is intentionally excluded from the main prompt.
+// It is generated in a second lightweight call to avoid truncation.
+const CLAUDE_PROMPT = `You are a senior radiologist and medical educator. Analyze this RadioGraphics article PDF and produce a structured summary optimized for radiology residency learning.
+
+Return ONLY a valid JSON object with this exact structure. No markdown fences, no preamble, no trailing text:
+{
+  "title": "Full article title",
+  "authors": "First author et al.",
+  "year": "Publication year",
+  "modality": "Primary imaging modality",
+  "subspecialty": "Radiology subspecialty",
+  "keywords": ["kw1", "kw2", "kw3", "kw4", "kw5"],
+  "clinicalPearl": "Single most important imaging pearl in 1-2 sentences",
+  "background": "Clinical context, 3-4 sentences",
+  "keyFindings": ["Finding 1", "Finding 2", "Finding 3", "Finding 4", "Finding 5"],
+  "technique": "Relevant protocol/technique points if discussed",
+  "differential": ["DDx 1", "DDx 2", "DDx 3"],
+  "pitfalls": ["Pitfall 1", "Pitfall 2", "Pitfall 3"],
+  "clinicalImplications": "Management impact, 3-4 sentences",
+  "teachingPoints": ["Teaching point 1", "Teaching point 2", "Teaching point 3"]
+}
+
+Be concise and high-yield. Use standard radiology terminology. Output ONLY the JSON.`;
+
+const AUDIO_PROMPT = (d) =>
+  `Write a 2-minute spoken podcast script summarizing this RadioGraphics article for a radiology resident. ` +
+  `Natural conversational tone, no markdown, no bullet points, just plain prose suitable for text-to-speech. ` +
+  `Article: "${d.title}" by ${d.authors} (${d.year}). ` +
+  `Subspecialty: ${d.subspecialty}. Modality: ${d.modality}. ` +
+  `Pearl: ${d.clinicalPearl} ` +
+  `Key findings: ${(d.keyFindings||[]).join('; ')}. ` +
+  `Teaching points: ${(d.teachingPoints||[]).join('; ')}.`;
+
+async function callClaude(base64PDF, apiKey) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4096,
+      messages: [{
+        role: 'user',
+        content: [
+          {
+            type: 'document',
+            source: { type: 'base64', media_type: 'application/pdf', data: base64PDF }
+          },
+          { type: 'text', text: CLAUDE_PROMPT }
+        ]
+      }]
+    })
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || `HTTP ${res.status}`);
+  }
+
+  const data = await res.json();
+  const raw = data.content.map(b => b.text || '').join('');
+
+  // Strip markdown fences if present
+  const clean = raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
+
+  let parsed;
+  try {
+    parsed = JSON.parse(clean);
+  } catch(e) {
+    // Attempt to recover partial JSON by finding the last complete field
+    const recovered = attemptJSONRecovery(clean);
+    if (recovered) {
+      parsed = recovered;
+      parsed._truncated = true;
+    } else {
+      throw new Error('Failed to parse Claude response as JSON. Raw: ' + raw.slice(0, 120));
+    }
+  }
+
+  parsed.wordCount = raw.split(/\s+/).length;
+  return parsed;
+}
+
+async function callClaudeAudioScript(summaryData, apiKey) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1024,
+      messages: [{ role: 'user', content: AUDIO_PROMPT(summaryData) }]
+    })
+  });
+  if (!res.ok) throw new Error(`TTS script HTTP ${res.status}`);
+  const data = await res.json();
+  return data.content.map(b => b.text || '').join('').trim();
+}
+
+function attemptJSONRecovery(str) {
+  // Try to close an incomplete JSON object by finding the last valid field
+  try {
+    // Find last complete key-value pair and close the object
+    const lastComma = str.lastIndexOf('",\n');
+    if (lastComma > 0) {
+      const candidate = str.slice(0, lastComma + 1) + '\n  "teachingPoints": []\n}';
+      return JSON.parse(candidate);
+    }
+  } catch(e) { /* ignore */ }
+  return null;
+}
+
+// ── TTS ──────────────────────────────────────────────────────────
+async function callTTS(text, apiKey, voice) {
+  const res = await fetch('https://api.openai.com/v1/audio/speech', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + apiKey
+    },
+    body: JSON.stringify({
+      model: 'tts-1',
+      input: text,
+      voice: voice,
+      response_format: 'mp3'
+    })
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || `HTTP ${res.status}`);
+  }
+
+  return await res.blob();
+}
+
+
+// ── Google Drive ─────────────────────────────────────────────────
+let gAccessToken = null;
+
+function buildSummaryText(d) {
+  const findings = (d.keyFindings||[]).map((f,i)=>`  ${i+1}. ${f}`).join('\n');
+  const ddx      = (d.differential||[]).map((f,i)=>`  ${i+1}. ${f}`).join('\n');
+  const pitfalls = (d.pitfalls||[]).map((f,i)=>`  ${i+1}. ${f}`).join('\n');
+  const teaching = (d.teachingPoints||[]).map((t,i)=>`  ${i+1}. ${t}`).join('\n');
+  return [
+    `RadioGraphics Summary — ${d.subspecialty}`,
+    `${'─'.repeat(50)}`,
+    `Title:     ${d.title}`,
+    `Authors:   ${d.authors}, ${d.year}`,
+    `Modality:  ${d.modality}`,
+    `Keywords:  ${(d.keywords||[]).join(', ')}`,
+    ``,
+    `CLINICAL PEARL`,
+    d.clinicalPearl,
+    ``,
+    `BACKGROUND`,
+    d.background,
+    ``,
+    `KEY IMAGING FINDINGS`,
+    findings,
+    ``,
+    `DIFFERENTIAL DIAGNOSIS`,
+    ddx,
+    ``,
+    `PITFALLS & MIMICKERS`,
+    pitfalls,
+    ``,
+    `CLINICAL IMPLICATIONS`,
+    d.clinicalImplications,
+    ``,
+    `TEACHING POINTS`,
+    teaching,
+    ``,
+    `${'─'.repeat(50)}`,
+    `Generated by RadioGraphics Reader`,
+  ].join('\n');
+}
+
+async function loadGISLibrary() {
+  if (window.google?.accounts?.oauth2) return;
+  await new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.onload = res;
+    s.onerror = () => rej(new Error('Failed to load Google Identity Services'));
+    document.head.appendChild(s);
+  });
+}
+
+function googleSignIn() {
+  return new Promise(async (resolve, reject) => {
+    const clientId = document.getElementById('gClientId').value.trim();
+    if (!clientId) { reject(new Error('Enter your Google Client ID first')); return; }
+
+    try {
+      await loadGISLibrary();
+      const tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: clientId,
+        scope: 'https://www.googleapis.com/auth/drive.file',
+        callback: (resp) => {
+          if (resp.error) { reject(new Error(resp.error)); return; }
+          gAccessToken = resp.access_token;
+          // Show signed-in indicator
+          document.getElementById('gSignInBtn').style.display = 'none';
+          document.getElementById('gSignedInAs').style.display = 'inline';
+          document.getElementById('gSignedInAs').textContent = '✓ Signed in to Google';
+          resolve();
+        },
+      });
+      // Show sign-in button if not yet authenticated
+      if (!gAccessToken) {
+        document.getElementById('gSignInBtn').style.display = 'inline-flex';
+        tokenClient.requestAccessToken({ prompt: 'consent' });
+      } else {
+        resolve();
+      }
+    } catch(e) {
+      reject(e);
+    }
+  });
+}
+
+async function saveToDriveAPI(d, bodyText) {
+  if (!gAccessToken) throw new Error('Not signed in to Google');
+
+  const folderId = document.getElementById('gFolderId').value.trim();
+  const safeTitle = (d.title||'Summary').replace(/[/\\:*?"<>|]/g,'_').slice(0,80);
+  const fileName  = `RadioGraphics — ${safeTitle} (${d.year||''}).txt`;
+
+  const metadata = {
+    name: fileName,
+    mimeType: 'text/plain',
+    ...(folderId ? { parents: [folderId] } : {}),
+  };
+
+  // Multipart upload
+  const boundary = 'rg_boundary_' + Date.now();
+  const body = [
+    `--${boundary}`,
+    'Content-Type: application/json; charset=UTF-8',
+    '',
+    JSON.stringify(metadata),
+    `--${boundary}`,
+    'Content-Type: text/plain; charset=UTF-8',
+    '',
+    bodyText,
+    `--${boundary}--`,
+  ].join('\r\n');
+
+  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + gAccessToken,
+      'Content-Type': `multipart/related; boundary=${boundary}`,
+    },
+    body,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || `Drive API HTTP ${res.status}`);
+  }
+
+  const file = await res.json();
+  return file.webViewLink || `https://drive.google.com/file/d/${file.id}/view`;
+}
+
+async function saveToDrive() {
+  const clientId = document.getElementById('gClientId').value.trim();
+  if (!clientId)          { showActionToast('Enter a Google Client ID first.', 'error'); return; }
+  if (!lineText || !summaryData) { showActionToast('Run the pipeline first.', 'error'); return; }
+  try {
+    if (!gAccessToken) await googleSignIn();
+    const url = await saveToDriveAPI(summaryData, lineText);
+    showActionToast('Saved to Drive ✓', 'success');
+    document.getElementById('lineRetryBtn').innerHTML =
+      `<a href="${url}" target="_blank" style="color:inherit;text-decoration:none">☁ Open in Drive</a>`;
+  } catch(e) {
+    showActionToast('Drive save failed: ' + e.message, 'error');
+  }
+}
+
+// ── Render ────────────────────────────────────────────────────────
+function renderResults(d) {
+  // meta cards
+  const metaGrid = document.getElementById('metaGrid');
+  metaGrid.innerHTML = [
+    { label:'Title',        value: d.title||'—',        accent:false },
+    { label:'Authors',      value: (d.authors||'—') + (d.year ? ', '+d.year : ''), accent:false },
+    { label:'Modality',     value: d.modality||'—',     accent:true  },
+    { label:'Subspecialty', value: d.subspecialty||'—', accent:true  },
+  ].map(m => `
+    <div class="meta-card">
+      <div class="meta-label">${m.label}</div>
+      <div class="meta-value${m.accent?' accent':''}">${m.value}</div>
+    </div>
+  `).join('');
+
+  const body = document.getElementById('summaryBody');
+  body.innerHTML = '';
+
+  // Clinical pearl
+  if (d.clinicalPearl) {
+    body.innerHTML += block('⭐ Clinical Pearl', `<p>${d.clinicalPearl}</p>`);
+  }
+
+  // Keywords
+  if (d.keywords?.length) {
+    body.innerHTML += block('Keywords', `<div class="tag-list">${d.keywords.map(k=>`<span class="tag">${k}</span>`).join('')}</div>`);
+  }
+
+  // Background
+  if (d.background) {
+    body.innerHTML += block('Background', `<p>${d.background}</p>`);
+  }
+
+  // Key findings
+  if (d.keyFindings?.length) {
+    body.innerHTML += block('Key Imaging Findings', '<ul>' + d.keyFindings.map(f=>`<li>${f}</li>`).join('') + '</ul>');
+  }
+
+  // Technique
+  if (d.technique) {
+    body.innerHTML += block('Technique / Protocol', `<p>${d.technique}</p>`);
+  }
+
+  // Differential + Pitfalls side by side
+  let twoCol = '';
+  if (d.differential?.length) twoCol += block('Differential Diagnosis', '<ul>'+d.differential.map(f=>`<li>${f}</li>`).join('')+'</ul>');
+  if (d.pitfalls?.length)     twoCol += block('Pitfalls & Mimickers',   '<ul>'+d.pitfalls.map(f=>`<li>${f}</li>`).join('')+'</ul>');
+  if (twoCol) {
+    body.innerHTML += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">${twoCol}</div>`;
+  }
+
+  // Clinical implications
+  if (d.clinicalImplications) {
+    body.innerHTML += block('Clinical Implications', `<p>${d.clinicalImplications}</p>`);
+  }
+
+  // Teaching points
+  if (d.teachingPoints?.length) {
+    body.innerHTML += block('📚 Teaching Points', '<ol>'+d.teachingPoints.map(t=>`<li>${t}</li>`).join('')+'</ol>');
+  }
+
+  document.getElementById('rawText').value = lineText;
+  document.getElementById('results').classList.add('visible');
+}
+
+function block(title, inner) {
+  return `<div class="report-block"><h3>${title}</h3>${inner}</div>`;
+}
+
+function showAudio(blob) {
+  const url = URL.createObjectURL(blob);
+  const player = document.getElementById('audioPlayer');
+  const dl = document.getElementById('audioDownload');
+  player.src = url;
+  dl.href = url;
+  document.getElementById('audioSection').classList.add('visible');
+}
+
+// ── UI helpers ────────────────────────────────────────────────────
+function setStep(id, state, note='') {
+  const el = document.getElementById('step-'+id);
+  el.className = 'step ' + state;
+  const dot = el.querySelector('.step-dot');
+  dot.textContent = state==='done' ? '✓' : state==='failed' ? '✕' : '';
+  document.getElementById('note-'+id).textContent = note;
+}
+
+function resetSteps() {
+  ['read','claude','audio','line'].forEach(id => setStep(id,'',''));
+}
+
+function showPipelineToast(msg, type) {
+  const t = document.getElementById('pipelineToast');
+  t.className = 'toast ' + type;
+  t.textContent = msg;
+}
+
+function clearPipelineToast() {
+  const t = document.getElementById('pipelineToast');
+  t.className = 'toast';
+}
+
+function showActionToast(msg, type) {
+  const t = document.getElementById('actionToast');
+  t.className = 'toast ' + type;
+  t.textContent = msg;
+  setTimeout(() => t.className = 'toast', 4000);
+}
+
+function toggleRaw() {
+  document.getElementById('rawText').classList.toggle('visible');
+}
+
+function copyText() {
+  if (!lineText) { showActionToast('No summary yet.','error'); return; }
+  navigator.clipboard.writeText(lineText).then(()=>showActionToast('Copied to clipboard ✓','success'));
+}
+
+function downloadSummary() {
+  if (!lineText) { showActionToast('No summary yet.','error'); return; }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([lineText],{type:'text/plain'}));
+  a.download = 'radiographics_summary.txt';
+  a.click();
+}
+
+async function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = () => rej(new Error('File read failed'));
+    r.readAsDataURL(file);
+  });
+}
+</script>
+</body>
+</html>
