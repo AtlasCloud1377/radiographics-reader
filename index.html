@@ -1,29 +1,57 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RadioGraphics Reader</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@300;400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@300;400;500;600;700&display=swap');
 
+  /* ── Tokens ── */
   :root {
-    --bg:        #0d1117;
-    --surface:   #161b22;
-    --surface2:  #1c2230;
-    --border:    #2a3444;
-    --accent:    #00d4c8;
-    --accent2:   #0099ff;
-    --warn:      #f59e0b;
-    --error:     #ef4444;
-    --success:   #22c55e;
-    --text:      #e6edf3;
-    --muted:     #7d8fa0;
-    --mono:      'JetBrains Mono', monospace;
-    --sans:      'Inter', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Inter', sans-serif;
+    --radius: 10px;
+    --radius-sm: 6px;
+    --transition: 0.2s ease;
   }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  [data-theme="light"] {
+    --bg:       #f5f7fa;
+    --surface:  #ffffff;
+    --surface2: #f0f2f5;
+    --border:   #e2e6ed;
+    --accent:   #0071e3;
+    --accent2:  #00b4a8;
+    --warn:     #f59e0b;
+    --error:    #dc2626;
+    --success:  #16a34a;
+    --text:     #1a1f2e;
+    --muted:    #6b7280;
+    --shadow:   0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04);
+    --shadow-sm:0 1px 2px rgba(0,0,0,0.06);
+  }
+
+  [data-theme="dark"] {
+    --bg:       #0d1117;
+    --surface:  #161b22;
+    --surface2: #1c2230;
+    --border:   #2a3444;
+    --accent:   #3b9eff;
+    --accent2:  #00d4c8;
+    --warn:     #f59e0b;
+    --error:    #ef4444;
+    --success:  #22c55e;
+    --text:     #e6edf3;
+    --muted:    #7d8fa0;
+    --shadow:   0 1px 3px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.2);
+    --shadow-sm:0 1px 2px rgba(0,0,0,0.3);
+  }
+
+  /* ── Reset ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
 
   body {
     background: var(--bg);
@@ -32,113 +60,156 @@
     min-height: 100vh;
     font-size: 14px;
     line-height: 1.6;
+    transition: background var(--transition), color var(--transition);
   }
 
   /* ── Header ── */
   header {
-    padding: 24px 32px 20px;
-    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
     background: var(--surface);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .header-ecg {
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
-    height: 28px;
-    opacity: 0.18;
-  }
-
-  .header-top {
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    height: 60px;
     display: flex;
     align-items: center;
-    gap: 14px;
-    position: relative;
-    z-index: 1;
+    justify-content: space-between;
+    box-shadow: var(--shadow-sm);
+    transition: background var(--transition), border-color var(--transition);
   }
 
-  .logo-badge {
-    width: 38px; height: 38px;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo {
+    width: 32px; height: 32px;
+    background: var(--accent);
     border-radius: 8px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 18px;
+    font-size: 16px;
     flex-shrink: 0;
   }
 
-  h1 {
-    font-size: 20px;
-    font-weight: 600;
+  .header-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
     letter-spacing: -0.3px;
   }
 
-  h1 span {
-    color: var(--accent);
+  .header-title span { color: var(--accent); }
+
+  .header-sub {
+    font-size: 11px;
+    color: var(--muted);
   }
 
-  .subtitle {
-    color: var(--muted);
-    font-size: 12px;
-    margin-top: 2px;
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
+
+  /* ── Theme toggle ── */
+  .theme-btn {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    transition: all var(--transition);
+  }
+  .theme-btn:hover { color: var(--text); border-color: var(--accent); }
 
   /* ── Layout ── */
   .container {
-    max-width: 900px;
+    max-width: 780px;
     margin: 0 auto;
-    padding: 28px 24px;
+    padding: 32px 24px 64px;
   }
 
-  /* ── Section blocks ── */
-  .section {
+  /* ── Section divider label ── */
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--muted);
+    margin: 28px 0 10px;
+  }
+  .section-label:first-child { margin-top: 0; }
+
+  /* ── Card ── */
+  .card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    margin-bottom: 18px;
+    border-radius: var(--radius);
     overflow: hidden;
+    box-shadow: var(--shadow);
+    transition: background var(--transition), border-color var(--transition);
+    margin-bottom: 12px;
   }
 
-  .section-header {
-    padding: 13px 18px;
-    border-bottom: 1px solid var(--border);
+  .card-header {
+    padding: 14px 20px;
     display: flex;
     align-items: center;
     gap: 10px;
-    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
   }
 
-  .section-icon {
-    width: 24px; height: 24px;
-    border-radius: 5px;
+  .card-icon {
+    width: 28px; height: 28px;
+    border-radius: 7px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 13px;
+    font-size: 14px;
     flex-shrink: 0;
   }
 
-  .icon-blue  { background: rgba(0,153,255,0.15); color: var(--accent2); }
-  .icon-teal  { background: rgba(0,212,200,0.12); color: var(--accent);  }
-  .icon-amber { background: rgba(245,158,11,0.12); color: var(--warn);   }
-  .icon-green { background: rgba(34,197,94,0.12);  color: var(--success);}
+  .ci-blue  { background: rgba(59,158,255,0.12); }
+  .ci-teal  { background: rgba(0,212,200,0.12);  }
+  .ci-amber { background: rgba(245,158,11,0.12); }
+  .ci-green { background: rgba(22,163,74,0.12);  }
 
-  .section-title {
+  .card-title {
     font-size: 13px;
     font-weight: 600;
     color: var(--text);
   }
 
-  .section-body { padding: 16px 18px; }
+  .card-body { padding: 20px; }
 
-  /* ── API key inputs ── */
-  .key-grid {
+  /* ── Collapsible API section ── */
+  .card-header.clickable {
+    cursor: pointer;
+    user-select: none;
+  }
+  .card-header.clickable:hover { background: var(--surface2); }
+
+  .collapse-arrow {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--muted);
+    transition: transform 0.2s;
+  }
+  .collapsed .collapse-arrow { transform: rotate(-90deg); }
+  .collapsed .card-body { display: none; }
+
+  /* ── Form fields ── */
+  .field-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    gap: 14px;
   }
 
-  @media (max-width: 600px) {
-    .key-grid { grid-template-columns: 1fr; }
-  }
+  @media (max-width: 560px) { .field-grid { grid-template-columns: 1fr; } }
 
   .field { display: flex; flex-direction: column; gap: 5px; }
 
@@ -153,42 +224,106 @@
   .field input, .field select {
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 8px 11px;
+    border-radius: var(--radius-sm);
+    padding: 9px 12px;
     color: var(--text);
-    font-family: var(--mono);
-    font-size: 12px;
+    font-family: var(--sans);
+    font-size: 13px;
     outline: none;
-    transition: border-color 0.15s;
+    transition: border-color var(--transition), box-shadow var(--transition);
+    width: 100%;
   }
 
   .field input:focus, .field select:focus {
     border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,113,227,0.12);
   }
 
-  .field input::placeholder { color: var(--muted); opacity: 0.6; }
+  [data-theme="dark"] .field input:focus,
+  [data-theme="dark"] .field select:focus {
+    box-shadow: 0 0 0 3px rgba(59,158,255,0.15);
+  }
 
-  .field-note {
+  .field input::placeholder { color: var(--muted); opacity: 0.55; }
+
+  .field-hint {
     font-size: 11px;
     color: var(--muted);
     line-height: 1.4;
   }
 
+  /* ── Toggle switches ── */
+  .toggles-row {
+    display: flex;
+    gap: 24px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .toggle-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+
+  .toggle {
+    position: relative;
+    width: 36px; height: 20px;
+    flex-shrink: 0;
+  }
+
+  .toggle input { display: none; }
+
+  .toggle-track {
+    position: absolute; inset: 0;
+    background: var(--border);
+    border-radius: 10px;
+    transition: background 0.2s;
+  }
+
+  .toggle input:checked + .toggle-track { background: var(--accent); }
+
+  .toggle-thumb {
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 14px; height: 14px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    transition: transform 0.2s;
+  }
+
+  .toggle input:checked ~ .toggle-thumb { transform: translateX(16px); }
+
+  .toggle-label {
+    font-size: 13px;
+    color: var(--text);
+    user-select: none;
+  }
+
   /* ── Upload zone ── */
   .upload-zone {
     border: 2px dashed var(--border);
-    border-radius: 8px;
-    padding: 36px 20px;
+    border-radius: var(--radius);
+    padding: 40px 20px;
     text-align: center;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--transition);
     background: var(--bg);
     position: relative;
   }
 
   .upload-zone:hover, .upload-zone.dragover {
     border-color: var(--accent);
-    background: rgba(0,212,200,0.04);
+    background: rgba(0,113,227,0.04);
+  }
+
+  [data-theme="dark"] .upload-zone:hover,
+  [data-theme="dark"] .upload-zone.dragover {
+    background: rgba(59,158,255,0.05);
   }
 
   .upload-zone input[type="file"] {
@@ -196,29 +331,34 @@
     opacity: 0; cursor: pointer;
   }
 
-  .upload-icon { font-size: 32px; margin-bottom: 10px; }
+  .upload-icon { font-size: 36px; margin-bottom: 10px; }
 
   .upload-title {
     font-size: 15px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--text);
     margin-bottom: 4px;
   }
 
   .upload-hint { color: var(--muted); font-size: 12px; }
 
-  .file-info {
+  .file-pill {
     display: none;
     align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
-    background: rgba(0,212,200,0.06);
-    border: 1px solid rgba(0,212,200,0.2);
-    border-radius: 7px;
+    gap: 10px;
+    padding: 10px 14px;
+    background: rgba(0,113,227,0.06);
+    border: 1px solid rgba(0,113,227,0.18);
+    border-radius: var(--radius-sm);
     margin-top: 12px;
   }
 
-  .file-info.visible { display: flex; }
+  [data-theme="dark"] .file-pill {
+    background: rgba(59,158,255,0.06);
+    border-color: rgba(59,158,255,0.18);
+  }
+
+  .file-pill.visible { display: flex; }
 
   .file-name {
     font-family: var(--mono);
@@ -236,26 +376,25 @@
   .btn {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
+    gap: 6px;
     padding: 9px 18px;
-    border-radius: 7px;
+    border-radius: var(--radius-sm);
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     font-family: var(--sans);
     cursor: pointer;
     border: none;
     transition: all 0.15s;
     white-space: nowrap;
+    text-decoration: none;
   }
 
   .btn-primary {
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    color: #000;
-    font-weight: 600;
+    background: var(--accent);
+    color: #fff;
   }
-
-  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
-  .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+  .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; transform: none; filter: none; }
 
   .btn-secondary {
     background: var(--surface2);
@@ -265,238 +404,381 @@
   .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
   .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  .btn-line {
-    background: #1a73e8;
-    color: #fff;
-    font-weight: 600;
+  .btn-ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
   }
-  .btn-line:hover { background: #1557b0; }
-  .btn-line:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-ghost:hover { color: var(--text); border-color: var(--text); }
 
   .action-row {
     display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-top: 14px;
-  }
-
-  /* ── Progress ── */
-  .progress-wrap {
-    display: none;
-    margin-top: 14px;
-  }
-  .progress-wrap.visible { display: block; }
-
-  .step-list {
-    display: flex;
-    flex-direction: column;
     gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 16px;
   }
+
+  /* ── Google sign-in ── */
+  .g-row {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* ── Progress steps ── */
+  .step-list { display: flex; flex-direction: column; gap: 6px; }
 
   .step {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 12px;
-    border-radius: 6px;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
     background: var(--bg);
     border: 1px solid var(--border);
-    font-size: 12px;
-    transition: all 0.3s;
+    font-size: 13px;
+    transition: all 0.25s;
   }
 
-  .step.active  { border-color: var(--accent2); background: rgba(0,153,255,0.06); }
-  .step.done    { border-color: var(--success);  background: rgba(34,197,94,0.05); }
-  .step.failed  { border-color: var(--error);    background: rgba(239,68,68,0.05); }
-  .step.skipped { opacity: 0.45; }
+  .step.active  { border-color: var(--accent); background: rgba(0,113,227,0.05); }
+  .step.done    { border-color: var(--success); background: rgba(22,163,74,0.05); }
+  .step.failed  { border-color: var(--error);   background: rgba(220,38,38,0.05); }
+  .step.skipped { opacity: 0.4; }
+
+  [data-theme="dark"] .step.active  { background: rgba(59,158,255,0.06); }
+  [data-theme="dark"] .step.done    { background: rgba(34,197,94,0.05); }
+  [data-theme="dark"] .step.failed  { background: rgba(239,68,68,0.05); }
 
   .step-dot {
-    width: 18px; height: 18px;
+    width: 20px; height: 20px;
     border-radius: 50%;
     border: 2px solid var(--border);
     display: flex; align-items: center; justify-content: center;
     font-size: 10px;
     flex-shrink: 0;
-    transition: all 0.3s;
-  }
-  .step.active  .step-dot { border-color: var(--accent2); animation: pulse 1.2s infinite; }
-  .step.done    .step-dot { border-color: var(--success); background: var(--success); color: #000; }
-  .step.failed  .step-dot { border-color: var(--error); background: var(--error); color: #fff; }
-
-  @keyframes pulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(0,153,255,0.4); }
-    50%       { box-shadow: 0 0 0 4px rgba(0,153,255,0); }
+    transition: all 0.25s;
   }
 
-  .step-label { color: var(--text); }
-  .step-note  { margin-left: auto; font-size: 11px; color: var(--muted); }
+  .step.active  .step-dot { border-color: var(--accent); animation: pulse-dot 1.2s infinite; }
+  .step.done    .step-dot { border-color: var(--success); background: var(--success); color: #fff; }
+  .step.failed  .step-dot { border-color: var(--error);   background: var(--error);   color: #fff; }
+
+  @keyframes pulse-dot {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(0,113,227,0.35); }
+    50%       { box-shadow: 0 0 0 5px rgba(0,113,227,0);  }
+  }
+
+  .step-label { color: var(--text); flex: 1; }
+  .step-note  { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+
+  /* ── Toasts ── */
+  .toast {
+    display: none;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    margin-top: 12px;
+    line-height: 1.5;
+  }
+  .toast.error   { display: block; background: rgba(220,38,38,0.08);  border: 1px solid rgba(220,38,38,0.2);  color: #dc2626; }
+  .toast.success { display: block; background: rgba(22,163,74,0.08);  border: 1px solid rgba(22,163,74,0.2);  color: #16a34a; }
+  .toast.info    { display: block; background: rgba(0,113,227,0.07);  border: 1px solid rgba(0,113,227,0.18); color: #0071e3; }
+
+  [data-theme="dark"] .toast.error   { color: #fca5a5; }
+  [data-theme="dark"] .toast.success { color: #86efac; }
+  [data-theme="dark"] .toast.info    { color: #93c5fd; }
 
   /* ── Results ── */
   #results { display: none; }
   #results.visible { display: block; }
 
-  .summary-grid {
+  .meta-strip {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
     margin-bottom: 14px;
   }
 
-  @media (max-width: 600px) {
-    .summary-grid { grid-template-columns: 1fr; }
+  @media (max-width: 560px) { .meta-strip { grid-template-columns: 1fr 1fr; } }
+
+  .meta-cell {
+    background: var(--surface);
+    padding: 12px 16px;
   }
 
-  .meta-card {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 7px;
-    padding: 12px 14px;
-  }
-
-  .meta-label {
+  .meta-cell-label {
     font-size: 10px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.6px;
     color: var(--muted);
-    margin-bottom: 4px;
+    margin-bottom: 3px;
   }
 
-  .meta-value {
+  .meta-cell-value {
     font-size: 13px;
-    color: var(--text);
     font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
+  .meta-cell-value.accent { color: var(--accent); }
 
-  .meta-value.accent { color: var(--accent); }
-
-  /* report block */
+  /* report blocks */
   .report-block {
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 7px;
+    border-radius: var(--radius-sm);
     padding: 16px;
     margin-bottom: 10px;
+    transition: background var(--transition);
   }
 
   .report-block h3 {
-    font-family: var(--mono);
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.8px;
     color: var(--accent);
-    margin-bottom: 8px;
-    padding-bottom: 6px;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
     border-bottom: 1px solid var(--border);
   }
 
   .report-block p, .report-block li {
     font-size: 13px;
-    line-height: 1.65;
+    line-height: 1.7;
     color: var(--text);
   }
 
-  .report-block ul, .report-block ol {
-    padding-left: 18px;
-  }
-
-  .report-block li { margin-bottom: 3px; }
+  .report-block ul, .report-block ol { padding-left: 18px; }
+  .report-block li { margin-bottom: 4px; }
 
   .tag-list {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    margin-top: 4px;
+    margin-top: 2px;
   }
 
   .tag {
     padding: 3px 9px;
-    border-radius: 4px;
+    border-radius: 20px;
     font-size: 11px;
     font-family: var(--mono);
-    background: rgba(0,212,200,0.1);
+    background: rgba(0,113,227,0.08);
     color: var(--accent);
-    border: 1px solid rgba(0,212,200,0.2);
+    border: 1px solid rgba(0,113,227,0.15);
   }
 
-  /* ── Audio player ── */
-  .audio-wrap {
-    display: none;
-    margin-top: 10px;
+  [data-theme="dark"] .tag {
+    background: rgba(59,158,255,0.1);
+    border-color: rgba(59,158,255,0.2);
   }
-  .audio-wrap.visible { display: block; }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  @media (max-width: 560px) { .two-col { grid-template-columns: 1fr; } }
+
+  /* ── Result group labels ── */
+  .result-group-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin: 0 0 8px;
+  }
+
+  /* ── Meta detail block (title/authors) ── */
+  .meta-detail-block { padding: 14px 16px; }
+
+  .meta-detail-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.4;
+    margin-bottom: 6px;
+  }
+
+  .meta-detail-sub {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* ── Outline pills ── */
+  .outline-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .outline-pill {
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  .outline-pill-accent {
+    background: rgba(0,113,227,0.08);
+    border-color: rgba(0,113,227,0.2);
+    color: var(--accent);
+  }
+  [data-theme="dark"] .outline-pill-accent {
+    background: rgba(59,158,255,0.1);
+    border-color: rgba(59,158,255,0.2);
+  }
+
+  /* ── Clinical background grid ── */
+  .cb-grid { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+
+  .cb-row {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 10px;
+    align-items: start;
+  }
+  @media (max-width: 560px) { .cb-row { grid-template-columns: 1fr; gap: 3px; } }
+
+  .cb-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    padding-top: 2px;
+  }
+
+  .cb-value { font-size: 13px; line-height: 1.65; color: var(--text); }
+
+  /* ── Approach list ── */
+  .approach-list {
+    padding-left: 20px;
+    margin: 0;
+  }
+  .approach-list li {
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--text);
+    margin-bottom: 6px;
+    padding-left: 4px;
+  }
+  .approach-list li::marker {
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* ── DDx distinguishing feature ── */
+  .ddx-feat {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 400;
+  }
+
+  /* ── Classification band ── */
+  .classification-band {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+
+  .classification-name {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  /* ── Reporting list (with quote marks) ── */
+  .reporting-list { list-style: none; padding: 0; }
+  .reporting-list li {
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .reporting-list li:last-child { border-bottom: none; }
+  .quote-mark { color: var(--accent); font-size: 16px; line-height: 1; }
+
+  /* ── Rapid Review block ── */
+  .rr-block {
+    border-color: var(--accent) !important;
+    padding: 0 !important;
+    overflow: hidden;
+  }
+  .rr-block h3 { display: none; }
+
+  .rr-row {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 12px;
+    padding: 14px 16px;
+    align-items: start;
+  }
+  @media (max-width: 560px) {
+    .rr-row { grid-template-columns: 1fr; gap: 6px; }
+  }
+
+  .rr-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--accent);
+    padding-top: 2px;
+  }
+
+  .rr-value { font-size: 13px; line-height: 1.65; color: var(--text); }
+  .rr-value ul { padding-left: 16px; margin: 0; }
+  .rr-value li { margin-bottom: 3px; }
+
+  .rr-pearl {
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .rr-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0 16px;
+  }
+
+  /* ── Audio ── */
+  #audioSection { display: none; }
+  #audioSection.visible { display: block; }
 
   audio {
     width: 100%;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     accent-color: var(--accent);
   }
 
-  /* ── Inline toggle ── */
-  .toggle-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 0;
-    border-top: 1px solid var(--border);
-    margin-top: 10px;
-  }
-
-  .toggle {
-    position: relative;
-    width: 34px; height: 18px;
-    cursor: pointer;
-    flex-shrink: 0;
-  }
-
-  .toggle input { display: none; }
-
-  .toggle-track {
-    position: absolute; inset: 0;
-    background: var(--border);
-    border-radius: 9px;
-    transition: background 0.2s;
-  }
-
-  .toggle input:checked + .toggle-track { background: var(--accent); }
-
-  .toggle-thumb {
-    position: absolute;
-    top: 2px; left: 2px;
-    width: 14px; height: 14px;
-    background: #fff;
-    border-radius: 50%;
-    transition: transform 0.2s;
-  }
-
-  .toggle input:checked ~ .toggle-thumb { transform: translateX(16px); }
-
-  .toggle-label { font-size: 12px; color: var(--text); }
-  .toggle-note  { font-size: 11px; color: var(--muted); margin-left: auto; }
-
-  /* ── Error / info toast ── */
-  .toast {
-    display: none;
-    padding: 10px 14px;
-    border-radius: 6px;
-    font-size: 12px;
-    margin-top: 10px;
-    line-height: 1.5;
-  }
-  .toast.error   { display: block; background: rgba(239,68,68,0.1);  border: 1px solid rgba(239,68,68,0.3);  color: #fca5a5; }
-  .toast.success { display: block; background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.25); color: #86efac; }
-  .toast.info    { display: block; background: rgba(0,153,255,0.08); border: 1px solid rgba(0,153,255,0.2);  color: #93c5fd; }
-
-  /* ── Raw text area ── */
+  /* ── Raw text ── */
   .raw-toggle {
     font-size: 11px;
     color: var(--muted);
     cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: var(--sans);
     text-decoration: underline;
     text-underline-offset: 2px;
-    margin-top: 8px;
-    display: inline-block;
+    margin-top: 10px;
+    display: block;
   }
   .raw-toggle:hover { color: var(--accent); }
 
@@ -505,111 +787,191 @@
     width: 100%;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     color: var(--muted);
     font-family: var(--mono);
     font-size: 11px;
-    padding: 10px;
+    padding: 12px;
     resize: vertical;
-    min-height: 80px;
+    min-height: 100px;
     margin-top: 8px;
     outline: none;
+    line-height: 1.6;
   }
   textarea.raw.visible { display: block; }
 
-  /* ECG animation */
-  .ecg-path {
-    stroke-dasharray: 1000;
-    stroke-dashoffset: 1000;
-    animation: ecg-draw 3s linear infinite;
+  /* ── Progress card visibility ── */
+  #progressCard { display: none; }
+  #progressCard.visible { display: block; }
+
+  /* ── PDF Viewer ── */
+  #pdfViewerCard { display: none; }
+  #pdfViewerCard.visible { display: block; }
+
+  .pdf-frame {
+    width: 100%;
+    height: 640px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: var(--surface2);
+    display: block;
   }
-  @keyframes ecg-draw {
-    to { stroke-dashoffset: 0; }
+
+  /* ── Recommendation ── */
+  .report-block.rec-block {
+    border-color: var(--accent2);
+    background: rgba(0,212,200,0.04);
+  }
+  [data-theme="dark"] .report-block.rec-block {
+    background: rgba(0,212,200,0.05);
+  }
+  .report-block.rec-block h3 {
+    color: var(--accent2);
+    border-bottom-color: rgba(0,212,200,0.2);
+  }
+
+  /* ── Q&A ── */
+  #qaSection { display: none; }
+  #qaSection.visible { display: block; }
+
+  .qa-item {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .qa-item:last-child { border-bottom: none; }
+
+  .qa-q {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 5px;
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+  }
+
+  .qa-a {
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--text);
+    opacity: 0.85;
+    padding-left: 28px;
+  }
+
+  .qa-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent);
+    flex-shrink: 0;
+    min-width: 22px;
+  }
+
+  .qa-download-row {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ── Truncated warning ── */
+  .badge-warn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    background: rgba(245,158,11,0.1);
+    color: var(--warn);
+    border: 1px solid rgba(245,158,11,0.2);
+    margin-left: auto;
   }
 </style>
 </head>
 <body>
 
+<!-- ── Header ── -->
 <header>
-  <div class="header-top">
-    <div class="logo-badge">📡</div>
+  <div class="header-left">
+    <div class="logo">📡</div>
     <div>
-      <h1>RadioGraphics <span>Reader</span></h1>
-      <div class="subtitle">PDF → Claude Summary → Audio → Google Drive</div>
+      <div class="header-title">RadioGraphics <span>Reader</span></div>
+      <div class="header-sub">PDF → Summary → Audio → Drive</div>
     </div>
   </div>
-  <svg class="header-ecg" viewBox="0 0 900 28" preserveAspectRatio="none" fill="none">
-    <path class="ecg-path" d="M0,14 L80,14 L100,14 L110,2 L120,26 L130,8 L140,14 L200,14 L220,14 L230,3 L240,25 L250,7 L260,14 L400,14 L420,14 L430,2 L440,26 L450,8 L460,14 L600,14 L620,14 L630,3 L640,25 L650,7 L660,14 L800,14 L820,14 L830,2 L840,26 L850,8 L860,14 L900,14"
-      stroke="#00d4c8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  </svg>
+  <div class="header-right">
+    <button class="theme-btn" id="themeToggle" onclick="toggleTheme()" title="Toggle theme">🌙</button>
+  </div>
 </header>
 
 <div class="container">
 
-  <!-- API Keys -->
-  <div class="section">
-    <div class="section-header">
-      <div class="section-icon icon-blue">🔑</div>
-      <div class="section-title">API Configuration</div>
+  <!-- ── API Configuration ── -->
+  <div class="section-label">Configuration</div>
+  <div class="card" id="configCard">
+    <div class="card-header clickable" onclick="toggleCollapse('configCard')">
+      <div class="card-icon ci-blue">🔑</div>
+      <div class="card-title">API Keys</div>
+      <span class="collapse-arrow">▾</span>
     </div>
-    <div class="section-body">
-      <div class="key-grid">
+    <div class="card-body">
+      <div class="field-grid">
         <div class="field">
-          <label>Anthropic API Key</label>
-          <input type="password" id="anthropicKey" placeholder="sk-ant-api03-..." autocomplete="off">
-          <div class="field-note">Required — for PDF → summary</div>
+          <label>Anthropic API Key <span style="color:var(--error)">*</span></label>
+          <input type="password" id="anthropicKey" placeholder="sk-ant-api03-…" autocomplete="off">
+          <span class="field-hint">Required — PDF → structured summary</span>
         </div>
         <div class="field">
-          <label>OpenAI API Key <span style="color:var(--warn);font-size:10px;margin-left:4px">optional</span></label>
-          <input type="password" id="openaiKey" placeholder="sk-proj-..." autocomplete="off">
-          <div class="field-note">For TTS audio generation (gpt-4o-mini-tts)</div>
+          <label>OpenAI API Key <span style="color:var(--warn);font-size:10px">optional</span></label>
+          <input type="password" id="openaiKey" placeholder="sk-proj-…" autocomplete="off">
+          <span class="field-hint">TTS audio via gpt-4o-mini-tts</span>
         </div>
         <div class="field">
-          <label>Google Client ID <span style="color:var(--warn);font-size:10px;margin-left:4px">optional</span></label>
-          <input type="text" id="gClientId" placeholder="xxxxxxxxxx.apps.googleusercontent.com" autocomplete="off">
-          <div class="field-note">From Google Cloud Console → OAuth 2.0 Client ID</div>
+          <label>Google Client ID <span style="color:var(--warn);font-size:10px">optional</span></label>
+          <input type="text" id="gClientId" placeholder="xxxx.apps.googleusercontent.com" autocomplete="off">
+          <span class="field-hint">OAuth 2.0 Client ID from Google Cloud Console</span>
         </div>
         <div class="field">
-          <label>Drive Folder ID <span style="color:var(--warn);font-size:10px;margin-left:4px">optional</span></label>
+          <label>Drive Folder ID <span style="color:var(--warn);font-size:10px">optional</span></label>
           <input type="text" id="gFolderId" placeholder="Leave blank for My Drive root" autocomplete="off">
-          <div class="field-note">Last segment of the folder URL, or leave blank for root</div>
+          <span class="field-hint">Last segment of the folder URL</span>
         </div>
         <div class="field">
           <label>TTS Voice</label>
           <select id="ttsVoice">
-            <option value="alloy">Alloy (neutral)</option>
-            <option value="echo">Echo (male)</option>
-            <option value="fable">Fable (storytelling)</option>
-            <option value="onyx">Onyx (deep male)</option>
-            <option value="nova" selected>Nova (female)</option>
-            <option value="shimmer">Shimmer (soft female)</option>
+            <option value="alloy">Alloy — neutral</option>
+            <option value="echo">Echo — male</option>
+            <option value="fable">Fable — storytelling</option>
+            <option value="onyx">Onyx — deep male</option>
+            <option value="nova" selected>Nova — female</option>
+            <option value="shimmer">Shimmer — soft female</option>
           </select>
-          <div class="field-note">OpenAI TTS voice selection</div>
+          <span class="field-hint">OpenAI TTS voice</span>
         </div>
       </div>
 
-      <div class="toggle-row">
-        <label class="toggle">
-          <input type="checkbox" id="enableAudio" checked>
-          <div class="toggle-track"></div>
-          <div class="toggle-thumb"></div>
+      <div class="toggles-row">
+        <label class="toggle-item">
+          <div class="toggle">
+            <input type="checkbox" id="enableAudio" checked>
+            <div class="toggle-track"></div>
+            <div class="toggle-thumb"></div>
+          </div>
+          <span class="toggle-label">Generate audio</span>
         </label>
-        <span class="toggle-label">Generate audio</span>
-        <span class="toggle-note">Requires OpenAI key</span>
+        <label class="toggle-item">
+          <div class="toggle">
+            <input type="checkbox" id="enableDrive" checked>
+            <div class="toggle-track"></div>
+            <div class="toggle-thumb"></div>
+          </div>
+          <span class="toggle-label">Save to Google Drive</span>
+        </label>
       </div>
 
-      <div class="toggle-row" style="border-top:none;padding-top:0">
-        <label class="toggle">
-          <input type="checkbox" id="enableDrive" checked>
-          <div class="toggle-track"></div>
-          <div class="toggle-thumb"></div>
-        </label>
-        <span class="toggle-label">Save to Google Drive</span>
-        <span class="toggle-note">Requires Google Client ID</span>
-      </div>
-      <div style="margin-top:10px">
+      <div class="g-row">
         <button class="btn btn-secondary" id="gSignInBtn" onclick="googleSignIn()" style="display:none">
-          <svg width="14" height="14" viewBox="0 0 24 24" style="margin-right:2px"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
           Sign in with Google
         </button>
         <span id="gSignedInAs" style="font-size:12px;color:var(--success);display:none"></span>
@@ -617,20 +979,21 @@
     </div>
   </div>
 
-  <!-- Upload -->
-  <div class="section">
-    <div class="section-header">
-      <div class="section-icon icon-teal">📄</div>
-      <div class="section-title">Upload RadioGraphics PDF</div>
+  <!-- ── Upload ── -->
+  <div class="section-label">Document</div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon ci-teal">📄</div>
+      <div class="card-title">Upload PDF</div>
     </div>
-    <div class="section-body">
+    <div class="card-body">
       <div class="upload-zone" id="uploadZone">
         <input type="file" id="pdfInput" accept=".pdf">
         <div class="upload-icon">📋</div>
-        <div class="upload-title">Drop PDF here or click to browse</div>
-        <div class="upload-hint">RadioGraphics article PDF — max 32 MB</div>
+        <div class="upload-title">Drop a RadioGraphics PDF here</div>
+        <div class="upload-hint">or click to browse — max 32 MB</div>
       </div>
-      <div class="file-info" id="fileInfo">
+      <div class="file-pill" id="fileInfo">
         <span>📄</span>
         <span class="file-name" id="fileName"></span>
         <span class="file-size" id="fileSize"></span>
@@ -639,20 +1002,33 @@
         <button class="btn btn-primary" id="runBtn" disabled onclick="runPipeline()">
           ▶ Run Pipeline
         </button>
-        <button class="btn btn-secondary" id="clearBtn" onclick="clearAll()" disabled>
+        <button class="btn btn-ghost" id="clearBtn" onclick="clearAll()" disabled>
           ✕ Clear
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Progress -->
-  <div class="section progress-wrap" id="progressWrap">
-    <div class="section-header">
-      <div class="section-icon icon-amber">⚡</div>
-      <div class="section-title">Pipeline</div>
+  <!-- ── PDF Viewer ── -->
+  <div class="card" id="pdfViewerCard">
+    <div class="card-header clickable" onclick="toggleCollapse('pdfViewerCard')">
+      <div class="card-icon ci-teal">📖</div>
+      <div class="card-title">PDF Preview</div>
+      <span style="font-size:11px;color:var(--muted);margin-left:auto;margin-right:8px" id="pdfViewerName"></span>
+      <span class="collapse-arrow">▾</span>
     </div>
-    <div class="section-body">
+    <div class="card-body" style="padding:12px">
+      <iframe id="pdfFrame" class="pdf-frame" title="PDF preview"></iframe>
+    </div>
+  </div>
+
+  <!-- ── Progress ── -->
+  <div class="card" id="progressCard">
+    <div class="card-header">
+      <div class="card-icon ci-amber">⚡</div>
+      <div class="card-title">Pipeline</div>
+    </div>
+    <div class="card-body">
       <div class="step-list">
         <div class="step" id="step-read">
           <div class="step-dot"></div>
@@ -664,59 +1040,76 @@
           <span class="step-label">Claude — structured summary</span>
           <span class="step-note" id="note-claude"></span>
         </div>
+        <div class="step" id="step-qa">
+          <div class="step-dot"></div>
+          <span class="step-label">Claude — Q&amp;A document</span>
+          <span class="step-note" id="note-qa"></span>
+        </div>
         <div class="step" id="step-audio">
           <div class="step-dot"></div>
-          <span class="step-label">OpenAI TTS — audio generation</span>
+          <span class="step-label">OpenAI TTS — audio</span>
           <span class="step-note" id="note-audio"></span>
         </div>
-        <div class="step" id="step-line">
+        <div class="step" id="step-drive">
           <div class="step-dot"></div>
-          <span class="step-label">Google Drive — save summary</span>
-          <span class="step-note" id="note-line"></span>
+          <span class="step-label">Google Drive — save folder</span>
+          <span class="step-note" id="note-drive"></span>
         </div>
       </div>
       <div id="pipelineToast" class="toast"></div>
     </div>
   </div>
 
-  <!-- Results -->
+  <!-- ── Results ── -->
   <div id="results">
 
-    <div class="section">
-      <div class="section-header">
-        <div class="section-icon icon-teal">📊</div>
-        <div class="section-title">Summary</div>
+    <div class="section-label">Summary</div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon ci-teal">📊</div>
+        <div class="card-title">Article Summary</div>
       </div>
-      <div class="section-body">
-        <div class="summary-grid" id="metaGrid"></div>
+      <div class="card-body">
         <div id="summaryBody"></div>
-
-        <span class="raw-toggle" onclick="toggleRaw()">Show raw text</span>
+        <button class="raw-toggle" onclick="toggleRaw()">Show raw text</button>
         <textarea class="raw" id="rawText" readonly></textarea>
       </div>
     </div>
 
-    <div class="section audio-wrap" id="audioSection">
-      <div class="section-header">
-        <div class="section-icon icon-amber">🔊</div>
-        <div class="section-title">Audio Summary</div>
+    <div class="card" id="audioSection">
+      <div class="card-header">
+        <div class="card-icon ci-amber">🔊</div>
+        <div class="card-title">Audio Summary</div>
       </div>
-      <div class="section-body">
+      <div class="card-body">
         <audio id="audioPlayer" controls></audio>
-        <div style="margin-top:10px">
+        <div style="margin-top:12px">
           <a id="audioDownload" class="btn btn-secondary" download="summary.mp3">⬇ Download MP3</a>
         </div>
       </div>
     </div>
 
-    <div class="section">
-      <div class="section-header">
-        <div class="section-icon icon-green">↗</div>
-        <div class="section-title">Actions</div>
+    <div class="card" id="qaSection">
+      <div class="card-header">
+        <div class="card-icon ci-blue">❓</div>
+        <div class="card-title">Q&amp;A Document</div>
       </div>
-      <div class="section-body">
-        <div class="action-row">
-          <button class="btn btn-line" id="lineRetryBtn" onclick="saveToDrive()" disabled>
+      <div class="card-body">
+        <div id="qaBody"></div>
+        <div class="qa-download-row">
+          <button class="btn btn-secondary" onclick="downloadQA()">⬇ Download Q&amp;A .txt</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon ci-green">↗</div>
+        <div class="card-title">Actions</div>
+      </div>
+      <div class="card-body">
+        <div class="action-row" style="margin-top:0">
+          <button class="btn btn-primary" id="lineRetryBtn" onclick="saveToDrive()" disabled>
             ☁ Re-save to Drive
           </button>
           <button class="btn btn-secondary" onclick="copyText()">
@@ -735,11 +1128,68 @@
 </div><!-- /container -->
 
 <script>
+// ── Theme ─────────────────────────────────────────────────────────
+(function() {
+  const saved = localStorage.getItem('rg-theme');
+  const pref  = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  const theme = saved || pref;
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('themeToggle').textContent = theme === 'dark' ? '☀️' : '🌙';
+})();
+
+// ── Config persistence ─────────────────────────────────────────────
+// API keys → sessionStorage (cleared on tab close)
+// Preferences → localStorage (persists)
+(function restoreConfig() {
+  const ss = (id) => sessionStorage.getItem('rg-' + id);
+  const ls = (id) => localStorage.getItem('rg-' + id);
+
+  // API keys
+  if (ss('anthropicKey')) document.getElementById('anthropicKey').value = ss('anthropicKey');
+  if (ss('openaiKey'))    document.getElementById('openaiKey').value    = ss('openaiKey');
+  if (ss('gClientId'))    document.getElementById('gClientId').value    = ss('gClientId');
+  if (ss('gFolderId'))    document.getElementById('gFolderId').value    = ss('gFolderId');
+
+  // Preferences
+  if (ls('ttsVoice'))     document.getElementById('ttsVoice').value     = ls('ttsVoice');
+  if (ls('enableAudio') !== null) document.getElementById('enableAudio').checked = ls('enableAudio') === 'true';
+  if (ls('enableDrive') !== null) document.getElementById('enableDrive').checked = ls('enableDrive') === 'true';
+})();
+
+function saveConfig() {
+  // Keys → sessionStorage
+  ['anthropicKey','openaiKey','gClientId','gFolderId'].forEach(id => {
+    sessionStorage.setItem('rg-' + id, document.getElementById(id).value);
+  });
+  // Preferences → localStorage
+  localStorage.setItem('rg-ttsVoice',     document.getElementById('ttsVoice').value);
+  localStorage.setItem('rg-enableAudio',  document.getElementById('enableAudio').checked);
+  localStorage.setItem('rg-enableDrive',  document.getElementById('enableDrive').checked);
+}
+
+// Auto-save on any change inside the config card
+document.getElementById('configCard').addEventListener('input',  saveConfig);
+document.getElementById('configCard').addEventListener('change', saveConfig);
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  localStorage.setItem('rg-theme', next);
+  document.getElementById('themeToggle').textContent = next === 'dark' ? '☀️' : '🌙';
+}
+
+// ── Collapsible ───────────────────────────────────────────────────
+function toggleCollapse(cardId) {
+  document.getElementById(cardId).classList.toggle('collapsed');
+}
+
 // ── State ──────────────────────────────────────────────────────────
 let pdfFile = null;
 let summaryData = null;
 let audioBlob = null;
 let lineText = '';
+let qaData = null;
 
 // ── File handling ─────────────────────────────────────────────────
 const uploadZone = document.getElementById('uploadZone');
@@ -757,6 +1207,8 @@ pdfInput.addEventListener('change', () => {
   if (pdfInput.files[0]) handleFile(pdfInput.files[0]);
 });
 
+let pdfBlobUrl = null;
+
 function handleFile(file) {
   if (!file.name.toLowerCase().endsWith('.pdf')) {
     showActionToast('Only PDF files are supported.', 'error'); return;
@@ -770,6 +1222,13 @@ function handleFile(file) {
   document.getElementById('fileInfo').classList.add('visible');
   document.getElementById('runBtn').disabled = false;
   document.getElementById('clearBtn').disabled = false;
+
+  // Show inline PDF viewer
+  if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
+  pdfBlobUrl = URL.createObjectURL(file);
+  document.getElementById('pdfFrame').src = pdfBlobUrl;
+  document.getElementById('pdfViewerName').textContent = file.name;
+  document.getElementById('pdfViewerCard').classList.add('visible');
 }
 
 function clearAll() {
@@ -777,9 +1236,16 @@ function clearAll() {
   pdfInput.value = '';
   document.getElementById('fileInfo').classList.remove('visible');
   document.getElementById('runBtn').disabled = true;
-  document.getElementById('clearBtn').disabled = false;
-  document.getElementById('progressWrap').classList.remove('visible');
+  document.getElementById('clearBtn').disabled = true;
+  document.getElementById('progressCard').classList.remove('visible');
   document.getElementById('results').classList.remove('visible');
+  document.getElementById('audioSection').classList.remove('visible');
+  // Tear down PDF viewer
+  if (pdfBlobUrl) { URL.revokeObjectURL(pdfBlobUrl); pdfBlobUrl = null; }
+  document.getElementById('pdfFrame').src = '';
+  document.getElementById('pdfViewerCard').classList.remove('visible');
+  qaData = null;
+  document.getElementById('qaSection').classList.remove('visible');
   resetSteps();
 }
 
@@ -795,7 +1261,9 @@ async function runPipeline() {
 
   document.getElementById('runBtn').disabled = true;
   document.getElementById('results').classList.remove('visible');
-  document.getElementById('progressWrap').classList.add('visible');
+  document.getElementById('audioSection').classList.remove('visible');
+  document.getElementById('qaSection').classList.remove('visible');
+  document.getElementById('progressCard').classList.add('visible');
   resetSteps();
   clearPipelineToast();
 
@@ -826,11 +1294,19 @@ async function runPipeline() {
     return;
   }
 
-  // ── Step 3: TTS ──
+  // ── Step 3: Q&A — already embedded in the summary response ──
+  if (structured.qaItems?.length) {
+    qaData = structured.qaItems;
+    setStep('qa', 'done', qaData.length + ' pairs');
+  } else {
+    setStep('qa', 'skipped', 'Not in response');
+    qaData = null;
+  }
+
+  // ── Step 4: TTS ──
   if (enableAudio && openaiKey) {
     setStep('audio', 'active', 'Generating script…');
     try {
-      // Generate audio script via a lightweight second Claude call (no PDF needed)
       const ttsText = await callClaudeAudioScript(structured, anthropicKey);
       audioBlob = await callTTS(ttsText, openaiKey, document.getElementById('ttsVoice').value);
       setStep('audio', 'done', (audioBlob.size / 1024).toFixed(0) + ' KB');
@@ -842,38 +1318,33 @@ async function runPipeline() {
     setStep('audio', 'skipped', enableAudio ? 'No OpenAI key' : 'Disabled');
   }
 
-  // ── Step 4: Google Drive ──
+  // ── Step 5: Google Drive — folder structure ──
   lineText = buildSummaryText(structured);
   const gClientId = document.getElementById('gClientId').value.trim();
-  const driveReady = gClientId && gAccessToken;
 
   if (enableDrive && gClientId) {
-    setStep('line', 'active');
+    setStep('drive', 'active');
     try {
-      if (!gAccessToken) {
-        // Try silent sign-in first, then interactive
-        await googleSignIn();
-      }
-      const fileUrl = await saveToDriveAPI(structured, lineText);
-      setStep('line', 'done', 'Saved ✓');
+      if (!gAccessToken) await googleSignIn();
+      const folderUrl = await saveToDriveFolder(structured, lineText, qaData, pdfFile, audioBlob);
+      setStep('drive', 'done', 'Folder saved ✓');
       document.getElementById('lineRetryBtn').disabled = false;
       document.getElementById('lineRetryBtn').innerHTML =
-        `<a href="${fileUrl}" target="_blank" style="color:inherit;text-decoration:none">☁ Open in Drive</a>`;
+        `<a href="${folderUrl}" target="_blank" style="color:inherit;text-decoration:none">☁ Open Folder in Drive</a>`;
     } catch(e) {
-      setStep('line', 'failed', e.message.slice(0, 40));
+      setStep('drive', 'failed', e.message.slice(0, 40));
     }
   } else {
-    setStep('line', 'skipped', enableDrive ? (gClientId ? 'Sign in required' : 'No Client ID') : 'Disabled');
+    setStep('drive', 'skipped', enableDrive ? (gClientId ? 'Sign in required' : 'No Client ID') : 'Disabled');
     document.getElementById('lineRetryBtn').disabled = !gClientId;
   }
 
   renderResults(structured);
+  if (qaData?.length) renderQA(qaData, structured);
   document.getElementById('runBtn').disabled = false;
 }
 
 // ── Claude API ───────────────────────────────────────────────────
-// NOTE: audioScript is intentionally excluded from the main prompt.
-// It is generated in a second lightweight call to avoid truncation.
 const CLAUDE_PROMPT = `You are a senior radiologist and medical educator. Analyze this RadioGraphics article PDF and produce a structured summary optimized for radiology residency learning.
 
 Return ONLY a valid JSON object with this exact structure. No markdown fences, no preamble, no trailing text:
@@ -891,9 +1362,15 @@ Return ONLY a valid JSON object with this exact structure. No markdown fences, n
   "differential": ["DDx 1", "DDx 2", "DDx 3"],
   "pitfalls": ["Pitfall 1", "Pitfall 2", "Pitfall 3"],
   "clinicalImplications": "Management impact, 3-4 sentences",
-  "teachingPoints": ["Teaching point 1", "Teaching point 2", "Teaching point 3"]
+  "teachingPoints": ["Teaching point 1", "Teaching point 2", "Teaching point 3"],
+  "recommendation": "2-3 specific, actionable things a radiology resident should immediately apply from this article — changes to their search pattern, reporting language, or clinical decision-making",
+  "qaItems": [
+    {"q": "High-yield question for a resident?", "a": "Concise answer in 1-3 sentences."},
+    {"q": "Second question?", "a": "Answer."}
+  ]
 }
 
+Include 8-10 qaItems covering: classic imaging findings, classification systems, differentials, pitfalls, and reporting pearls.
 Be concise and high-yield. Use standard radiology terminology. Output ONLY the JSON.`;
 
 const AUDIO_PROMPT = (d) =>
@@ -916,14 +1393,11 @@ async function callClaude(base64PDF, apiKey) {
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
+      max_tokens: 6000,
       messages: [{
         role: 'user',
         content: [
-          {
-            type: 'document',
-            source: { type: 'base64', media_type: 'application/pdf', data: base64PDF }
-          },
+          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64PDF } },
           { type: 'text', text: CLAUDE_PROMPT }
         ]
       }]
@@ -937,15 +1411,12 @@ async function callClaude(base64PDF, apiKey) {
 
   const data = await res.json();
   const raw = data.content.map(b => b.text || '').join('');
-
-  // Strip markdown fences if present
   const clean = raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
 
   let parsed;
   try {
     parsed = JSON.parse(clean);
   } catch(e) {
-    // Attempt to recover partial JSON by finding the last complete field
     const recovered = attemptJSONRecovery(clean);
     if (recovered) {
       parsed = recovered;
@@ -980,9 +1451,7 @@ async function callClaudeAudioScript(summaryData, apiKey) {
 }
 
 function attemptJSONRecovery(str) {
-  // Try to close an incomplete JSON object by finding the last valid field
   try {
-    // Find last complete key-value pair and close the object
     const lastComma = str.lastIndexOf('",\n');
     if (lastComma > 0) {
       const candidate = str.slice(0, lastComma + 1) + '\n  "teachingPoints": []\n}';
@@ -1000,12 +1469,7 @@ async function callTTS(text, apiKey, voice) {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer ' + apiKey
     },
-    body: JSON.stringify({
-      model: 'tts-1',
-      input: text,
-      voice: voice,
-      response_format: 'mp3'
-    })
+    body: JSON.stringify({ model: 'tts-1', input: text, voice: voice, response_format: 'mp3' })
   });
 
   if (!res.ok) {
@@ -1016,46 +1480,29 @@ async function callTTS(text, apiKey, voice) {
   return await res.blob();
 }
 
-
 // ── Google Drive ─────────────────────────────────────────────────
 let gAccessToken = null;
 
 function buildSummaryText(d) {
-  const findings = (d.keyFindings||[]).map((f,i)=>`  ${i+1}. ${f}`).join('\n');
-  const ddx      = (d.differential||[]).map((f,i)=>`  ${i+1}. ${f}`).join('\n');
-  const pitfalls = (d.pitfalls||[]).map((f,i)=>`  ${i+1}. ${f}`).join('\n');
-  const teaching = (d.teachingPoints||[]).map((t,i)=>`  ${i+1}. ${t}`).join('\n');
+  const sep = '─'.repeat(50);
+  const li  = (arr) => (arr||[]).map((x,i) => `  ${i+1}. ${x}`).join('\n');
   return [
     `RadioGraphics Summary — ${d.subspecialty}`,
-    `${'─'.repeat(50)}`,
+    sep,
     `Title:     ${d.title}`,
     `Authors:   ${d.authors}, ${d.year}`,
     `Modality:  ${d.modality}`,
     `Keywords:  ${(d.keywords||[]).join(', ')}`,
-    ``,
-    `CLINICAL PEARL`,
-    d.clinicalPearl,
-    ``,
-    `BACKGROUND`,
-    d.background,
-    ``,
-    `KEY IMAGING FINDINGS`,
-    findings,
-    ``,
-    `DIFFERENTIAL DIAGNOSIS`,
-    ddx,
-    ``,
-    `PITFALLS & MIMICKERS`,
-    pitfalls,
-    ``,
-    `CLINICAL IMPLICATIONS`,
-    d.clinicalImplications,
-    ``,
-    `TEACHING POINTS`,
-    teaching,
-    ``,
-    `${'─'.repeat(50)}`,
-    `Generated by RadioGraphics Reader`,
+    ``, `CLINICAL PEARL`, d.clinicalPearl,
+    ``, `BACKGROUND`, d.background,
+    ``, `KEY IMAGING FINDINGS`, li(d.keyFindings||[]),
+    ``, `TECHNIQUE`, d.technique||'—',
+    ``, `DIFFERENTIAL DIAGNOSIS`, li(d.differential||[]),
+    ``, `PITFALLS & MIMICKERS`, li(d.pitfalls||[]),
+    ``, `CLINICAL IMPLICATIONS`, d.clinicalImplications,
+    ``, `TEACHING POINTS`, li(d.teachingPoints||[]),
+    ``, `RECOMMENDATION`, d.recommendation||'—',
+    ``, sep, `Generated by RadioGraphics Reader`,
   ].join('\n');
 }
 
@@ -1074,7 +1521,6 @@ function googleSignIn() {
   return new Promise(async (resolve, reject) => {
     const clientId = document.getElementById('gClientId').value.trim();
     if (!clientId) { reject(new Error('Enter your Google Client ID first')); return; }
-
     try {
       await loadGISLibrary();
       const tokenClient = google.accounts.oauth2.initTokenClient({
@@ -1083,14 +1529,12 @@ function googleSignIn() {
         callback: (resp) => {
           if (resp.error) { reject(new Error(resp.error)); return; }
           gAccessToken = resp.access_token;
-          // Show signed-in indicator
           document.getElementById('gSignInBtn').style.display = 'none';
           document.getElementById('gSignedInAs').style.display = 'inline';
           document.getElementById('gSignedInAs').textContent = '✓ Signed in to Google';
           resolve();
         },
       });
-      // Show sign-in button if not yet authenticated
       if (!gAccessToken) {
         document.getElementById('gSignInBtn').style.display = 'inline-flex';
         tokenClient.requestAccessToken({ prompt: 'consent' });
@@ -1103,61 +1547,16 @@ function googleSignIn() {
   });
 }
 
-async function saveToDriveAPI(d, bodyText) {
-  if (!gAccessToken) throw new Error('Not signed in to Google');
-
-  const folderId = document.getElementById('gFolderId').value.trim();
-  const safeTitle = (d.title||'Summary').replace(/[/\\:*?"<>|]/g,'_').slice(0,80);
-  const fileName  = `RadioGraphics — ${safeTitle} (${d.year||''}).txt`;
-
-  const metadata = {
-    name: fileName,
-    mimeType: 'text/plain',
-    ...(folderId ? { parents: [folderId] } : {}),
-  };
-
-  // Multipart upload
-  const boundary = 'rg_boundary_' + Date.now();
-  const body = [
-    `--${boundary}`,
-    'Content-Type: application/json; charset=UTF-8',
-    '',
-    JSON.stringify(metadata),
-    `--${boundary}`,
-    'Content-Type: text/plain; charset=UTF-8',
-    '',
-    bodyText,
-    `--${boundary}--`,
-  ].join('\r\n');
-
-  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink', {
-    method: 'POST',
-    headers: {
-      'Authorization': 'Bearer ' + gAccessToken,
-      'Content-Type': `multipart/related; boundary=${boundary}`,
-    },
-    body,
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error?.message || `Drive API HTTP ${res.status}`);
-  }
-
-  const file = await res.json();
-  return file.webViewLink || `https://drive.google.com/file/d/${file.id}/view`;
-}
-
 async function saveToDrive() {
   const clientId = document.getElementById('gClientId').value.trim();
-  if (!clientId)          { showActionToast('Enter a Google Client ID first.', 'error'); return; }
+  if (!clientId)                 { showActionToast('Enter a Google Client ID first.', 'error'); return; }
   if (!lineText || !summaryData) { showActionToast('Run the pipeline first.', 'error'); return; }
   try {
     if (!gAccessToken) await googleSignIn();
-    const url = await saveToDriveAPI(summaryData, lineText);
+    const url = await saveToDriveFolder(summaryData, lineText, qaData, pdfFile, audioBlob);
     showActionToast('Saved to Drive ✓', 'success');
     document.getElementById('lineRetryBtn').innerHTML =
-      `<a href="${url}" target="_blank" style="color:inherit;text-decoration:none">☁ Open in Drive</a>`;
+      `<a href="${url}" target="_blank" style="color:inherit;text-decoration:none">☁ Open Folder in Drive</a>`;
   } catch(e) {
     showActionToast('Drive save failed: ' + e.message, 'error');
   }
@@ -1165,65 +1564,40 @@ async function saveToDrive() {
 
 // ── Render ────────────────────────────────────────────────────────
 function renderResults(d) {
-  // meta cards
-  const metaGrid = document.getElementById('metaGrid');
-  metaGrid.innerHTML = [
-    { label:'Title',        value: d.title||'—',        accent:false },
-    { label:'Authors',      value: (d.authors||'—') + (d.year ? ', '+d.year : ''), accent:false },
-    { label:'Modality',     value: d.modality||'—',     accent:true  },
-    { label:'Subspecialty', value: d.subspecialty||'—', accent:true  },
-  ].map(m => `
-    <div class="meta-card">
-      <div class="meta-label">${m.label}</div>
-      <div class="meta-value${m.accent?' accent':''}">${m.value}</div>
-    </div>
-  `).join('');
-
   const body = document.getElementById('summaryBody');
   body.innerHTML = '';
 
-  // Clinical pearl
-  if (d.clinicalPearl) {
-    body.innerHTML += block('⭐ Clinical Pearl', `<p>${d.clinicalPearl}</p>`);
+  if (d._truncated) {
+    body.innerHTML += `<div class="toast info" style="display:block;margin-bottom:10px">⚠ Response may be truncated — some fields might be empty.</div>`;
   }
 
-  // Keywords
+  // ── Group 1: Article ─────────────────────────────────────────────
+  body.innerHTML += `<div class="result-group-label">Article</div>`;
+  body.innerHTML += `
+    <div class="report-block meta-detail-block">
+      <div class="meta-detail-title">${d.title||'—'}</div>
+      <div class="meta-detail-sub">${d.authors||'—'} · ${d.year||'—'} · ${d.modality||'—'} · ${d.subspecialty||'—'}</div>
+    </div>`;
   if (d.keywords?.length) {
-    body.innerHTML += block('Keywords', `<div class="tag-list">${d.keywords.map(k=>`<span class="tag">${k}</span>`).join('')}</div>`);
+    body.innerHTML += `<div class="report-block"><h3>Keywords</h3><div class="tag-list">${d.keywords.map(k=>`<span class="tag">${k}</span>`).join('')}</div></div>`;
   }
 
-  // Background
-  if (d.background) {
-    body.innerHTML += block('Background', `<p>${d.background}</p>`);
-  }
+  // ── Group 2: Summary ─────────────────────────────────────────────
+  body.innerHTML += `<div class="result-group-label" style="margin-top:24px">Summary</div>`;
 
-  // Key findings
-  if (d.keyFindings?.length) {
-    body.innerHTML += block('Key Imaging Findings', '<ul>' + d.keyFindings.map(f=>`<li>${f}</li>`).join('') + '</ul>');
-  }
+  if (d.clinicalPearl) body.innerHTML += block('⭐ Clinical Pearl', `<p>${d.clinicalPearl}</p>`);
+  if (d.background)    body.innerHTML += block('Background', `<p>${d.background}</p>`);
+  if (d.keyFindings?.length) body.innerHTML += block('Key Imaging Findings', '<ul>'+d.keyFindings.map(f=>`<li>${f}</li>`).join('')+'</ul>');
+  if (d.technique)     body.innerHTML += block('Technique / Protocol', `<p>${d.technique}</p>`);
 
-  // Technique
-  if (d.technique) {
-    body.innerHTML += block('Technique / Protocol', `<p>${d.technique}</p>`);
-  }
-
-  // Differential + Pitfalls side by side
   let twoCol = '';
   if (d.differential?.length) twoCol += block('Differential Diagnosis', '<ul>'+d.differential.map(f=>`<li>${f}</li>`).join('')+'</ul>');
   if (d.pitfalls?.length)     twoCol += block('Pitfalls & Mimickers',   '<ul>'+d.pitfalls.map(f=>`<li>${f}</li>`).join('')+'</ul>');
-  if (twoCol) {
-    body.innerHTML += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">${twoCol}</div>`;
-  }
+  if (twoCol) body.innerHTML += `<div class="two-col">${twoCol}</div>`;
 
-  // Clinical implications
-  if (d.clinicalImplications) {
-    body.innerHTML += block('Clinical Implications', `<p>${d.clinicalImplications}</p>`);
-  }
-
-  // Teaching points
-  if (d.teachingPoints?.length) {
-    body.innerHTML += block('📚 Teaching Points', '<ol>'+d.teachingPoints.map(t=>`<li>${t}</li>`).join('')+'</ol>');
-  }
+  if (d.clinicalImplications) body.innerHTML += block('Clinical Implications', `<p>${d.clinicalImplications}</p>`);
+  if (d.teachingPoints?.length) body.innerHTML += block('📚 Teaching Points', '<ol>'+d.teachingPoints.map(t=>`<li>${t}</li>`).join('')+'</ol>');
+  if (d.recommendation) body.innerHTML += `<div class="report-block rec-block"><h3>💡 Recommendation for Residents</h3><p>${d.recommendation}</p></div>`;
 
   document.getElementById('rawText').value = lineText;
   document.getElementById('results').classList.add('visible');
@@ -1235,10 +1609,8 @@ function block(title, inner) {
 
 function showAudio(blob) {
   const url = URL.createObjectURL(blob);
-  const player = document.getElementById('audioPlayer');
-  const dl = document.getElementById('audioDownload');
-  player.src = url;
-  dl.href = url;
+  document.getElementById('audioPlayer').src = url;
+  document.getElementById('audioDownload').href = url;
   document.getElementById('audioSection').classList.add('visible');
 }
 
@@ -1246,13 +1618,12 @@ function showAudio(blob) {
 function setStep(id, state, note='') {
   const el = document.getElementById('step-'+id);
   el.className = 'step ' + state;
-  const dot = el.querySelector('.step-dot');
-  dot.textContent = state==='done' ? '✓' : state==='failed' ? '✕' : '';
+  el.querySelector('.step-dot').textContent = state==='done' ? '✓' : state==='failed' ? '✕' : '';
   document.getElementById('note-'+id).textContent = note;
 }
 
 function resetSteps() {
-  ['read','claude','audio','line'].forEach(id => setStep(id,'',''));
+  ['read','claude','qa','audio','drive'].forEach(id => setStep(id,'',''));
 }
 
 function showPipelineToast(msg, type) {
@@ -1262,8 +1633,7 @@ function showPipelineToast(msg, type) {
 }
 
 function clearPipelineToast() {
-  const t = document.getElementById('pipelineToast');
-  t.className = 'toast';
+  document.getElementById('pipelineToast').className = 'toast';
 }
 
 function showActionToast(msg, type) {
@@ -1274,12 +1644,15 @@ function showActionToast(msg, type) {
 }
 
 function toggleRaw() {
-  document.getElementById('rawText').classList.toggle('visible');
+  const ta  = document.getElementById('rawText');
+  const btn = document.querySelector('.raw-toggle');
+  const nowVisible = ta.classList.toggle('visible');
+  btn.textContent = nowVisible ? 'Hide raw text' : 'Show raw text';
 }
 
 function copyText() {
   if (!lineText) { showActionToast('No summary yet.','error'); return; }
-  navigator.clipboard.writeText(lineText).then(()=>showActionToast('Copied to clipboard ✓','success'));
+  navigator.clipboard.writeText(lineText).then(()=>showActionToast('Copied ✓','success'));
 }
 
 function downloadSummary() {
@@ -1297,6 +1670,105 @@ async function fileToBase64(file) {
     r.onerror = () => rej(new Error('File read failed'));
     r.readAsDataURL(file);
   });
+}
+
+function buildQAText(pairs, d) {
+  const sep = '─'.repeat(50);
+  const lines = [
+    `RadioGraphics Q&A — ${d.subspecialty}`, sep,
+    `Title:   ${d.title}`,
+    `Authors: ${d.authors}, ${d.year}`, ``,
+  ];
+  pairs.forEach((p, i) => {
+    lines.push(`Q${i+1}: ${p.q}`, `A${i+1}: ${p.a}`, ``);
+  });
+  lines.push(sep, 'Generated by RadioGraphics Reader');
+  return lines.join('\n');
+}
+
+function renderQA(pairs, d) {
+  document.getElementById('qaBody').innerHTML = pairs.map((p, i) => `
+    <div class="qa-item">
+      <div class="qa-q"><span class="qa-num">Q${i+1}</span>${p.q}</div>
+      <div class="qa-a">${p.a}</div>
+    </div>`).join('');
+  document.getElementById('qaSection').classList.add('visible');
+  // store for download
+  document.getElementById('qaSection').dataset.title   = d?.title  || '';
+  document.getElementById('qaSection').dataset.authors = d?.authors || '';
+  document.getElementById('qaSection').dataset.year    = d?.year    || '';
+  document.getElementById('qaSection').dataset.sub     = d?.subspecialty || '';
+}
+
+function downloadQA() {
+  if (!qaData?.length) { showActionToast('No Q&A yet.', 'error'); return; }
+  const el = document.getElementById('qaSection');
+  const d = { title: el.dataset.title, authors: el.dataset.authors, year: el.dataset.year, subspecialty: el.dataset.sub };
+  const text = buildQAText(qaData, d);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+  a.download = 'radiographics_qa.txt';
+  a.click();
+}
+
+// ── Google Drive — folder structure ─────────────────────────────
+async function createDriveFolder(name, parentId, token) {
+  const meta = { name, mimeType: 'application/vnd.google-apps.folder', ...(parentId ? { parents: [parentId] } : {}) };
+  const res = await fetch('https://www.googleapis.com/drive/v3/files?fields=id,webViewLink', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify(meta),
+  });
+  if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.error?.message || `Folder HTTP ${res.status}`); }
+  return res.json();
+}
+
+async function uploadFileToDrive(folderId, name, mimeType, content, token) {
+  const meta = JSON.stringify({ name, mimeType, parents: [folderId] });
+  const boundary = 'rg_' + Date.now();
+  const enc = new TextEncoder();
+
+  let contentBytes;
+  if (content instanceof Blob)       contentBytes = await content.arrayBuffer();
+  else if (typeof content === 'string') contentBytes = enc.encode(content).buffer;
+  else                               contentBytes = content;
+
+  const head1 = enc.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n`);
+  const head2 = enc.encode(`--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`);
+  const tail  = enc.encode(`\r\n--${boundary}--`);
+  const cb    = new Uint8Array(contentBytes);
+
+  const out = new Uint8Array(head1.byteLength + head2.byteLength + cb.byteLength + tail.byteLength);
+  let off = 0;
+  out.set(head1, off); off += head1.byteLength;
+  out.set(head2, off); off += head2.byteLength;
+  out.set(cb,    off); off += cb.byteLength;
+  out.set(tail,  off);
+
+  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': `multipart/related; boundary=${boundary}` },
+    body: out.buffer,
+  });
+  if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.error?.message || `Upload HTTP ${res.status}`); }
+  return res.json();
+}
+
+async function saveToDriveFolder(structured, summaryTxt, pairs, pdf, audio) {
+  if (!gAccessToken) throw new Error('Not signed in to Google');
+  const parentId = document.getElementById('gFolderId').value.trim() || null;
+  const safeTitle = (structured.title||'Article').replace(/[/\\:*?"<>|]/g,'_').slice(0, 60);
+  const folderName = `RadioGraphics — ${safeTitle} (${structured.year||''})`;
+
+  const folder = await createDriveFolder(folderName, parentId, gAccessToken);
+  const fid = folder.id;
+
+  await uploadFileToDrive(fid, folderName + ' — Summary.txt', 'text/plain', summaryTxt, gAccessToken);
+  if (pairs?.length) await uploadFileToDrive(fid, folderName + ' — QA.txt', 'text/plain', buildQAText(pairs, structured), gAccessToken);
+  if (pdf)   await uploadFileToDrive(fid, folderName + '.pdf', 'application/pdf', pdf, gAccessToken);
+  if (audio) await uploadFileToDrive(fid, folderName + ' — Audio.mp3', 'audio/mpeg', audio, gAccessToken);
+
+  return folder.webViewLink || `https://drive.google.com/drive/folders/${fid}`;
 }
 </script>
 </body>
