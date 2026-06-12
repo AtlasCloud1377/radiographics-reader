@@ -1112,6 +1112,9 @@
           <button class="btn btn-primary" id="lineRetryBtn" onclick="saveToDrive()" disabled>
             ☁ Re-save to Drive
           </button>
+          <button class="btn btn-secondary" id="addAudioBtn" onclick="generateAndAddAudio()" style="display:none">
+            🎵 Add Audio
+          </button>
           <button class="btn btn-secondary" onclick="copyText()">
             📋 Copy Summary
           </button>
@@ -1190,6 +1193,8 @@ let summaryData = null;
 let audioBlob = null;
 let lineText = '';
 let qaData = null;
+let lastDriveFolderId = null;
+let lastDriveFolderName = '';
 
 // ── File handling ─────────────────────────────────────────────────
 const uploadZone = document.getElementById('uploadZone');
@@ -1245,7 +1250,10 @@ function clearAll() {
   document.getElementById('pdfFrame').src = '';
   document.getElementById('pdfViewerCard').classList.remove('visible');
   qaData = null;
+  lastDriveFolderId = null;
+  lastDriveFolderName = '';
   document.getElementById('qaSection').classList.remove('visible');
+  document.getElementById('addAudioBtn').style.display = 'none';
   resetSteps();
 }
 
@@ -1305,9 +1313,9 @@ async function runPipeline() {
 
   // ── Step 4: TTS ──
   if (enableAudio && openaiKey) {
-    setStep('audio', 'active', 'Generating script…');
+    setStep('audio', 'active');
     try {
-      const ttsText = await callClaudeAudioScript(structured, anthropicKey);
+      const ttsText = buildAudioScript(structured);
       audioBlob = await callTTS(ttsText, openaiKey, document.getElementById('ttsVoice').value);
       setStep('audio', 'done', (audioBlob.size / 1024).toFixed(0) + ' KB');
       showAudio(audioBlob);
@@ -1341,6 +1349,7 @@ async function runPipeline() {
 
   renderResults(structured);
   if (qaData?.length) renderQA(qaData, structured);
+  updateAudioBtn();
   document.getElementById('runBtn').disabled = false;
 }
 
@@ -1372,15 +1381,6 @@ Return ONLY a valid JSON object with this exact structure. No markdown fences, n
 
 Include 8-10 qaItems covering: classic imaging findings, classification systems, differentials, pitfalls, and reporting pearls.
 Be concise and high-yield. Use standard radiology terminology. Output ONLY the JSON.`;
-
-const AUDIO_PROMPT = (d) =>
-  `Write a 2-minute spoken podcast script summarizing this RadioGraphics article for a radiology resident. ` +
-  `Natural conversational tone, no markdown, no bullet points, just plain prose suitable for text-to-speech. ` +
-  `Article: "${d.title}" by ${d.authors} (${d.year}). ` +
-  `Subspecialty: ${d.subspecialty}. Modality: ${d.modality}. ` +
-  `Pearl: ${d.clinicalPearl} ` +
-  `Key findings: ${(d.keyFindings||[]).join('; ')}. ` +
-  `Teaching points: ${(d.teachingPoints||[]).join('; ')}.`;
 
 async function callClaude(base64PDF, apiKey) {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1430,24 +1430,21 @@ async function callClaude(base64PDF, apiKey) {
   return parsed;
 }
 
-async function callClaudeAudioScript(summaryData, apiKey) {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
-      messages: [{ role: 'user', content: AUDIO_PROMPT(summaryData) }]
-    })
-  });
-  if (!res.ok) throw new Error(`TTS script HTTP ${res.status}`);
-  const data = await res.json();
-  return data.content.map(b => b.text || '').join('').trim();
+function buildAudioScript(d) {
+  const li = (arr) => (arr||[]).join('. ');
+  return [
+    `Welcome to RadioGraphics Reader. Today we're reviewing "${d.title}" by ${d.authors}, published in ${d.year}.`,
+    `This is a ${d.modality} article covering ${d.subspecialty}.`,
+    d.clinicalPearl,
+    d.background,
+    `Key imaging findings include: ${li(d.keyFindings)}.`,
+    d.differential?.length ? `The differential diagnosis includes ${d.differential.join(', ')}.` : '',
+    d.pitfalls?.length    ? `Important pitfalls: ${li(d.pitfalls)}.` : '',
+    d.clinicalImplications,
+    d.teachingPoints?.length ? `Teaching points: ${li(d.teachingPoints)}.` : '',
+    d.recommendation ? `Recommendation for residents: ${d.recommendation}` : '',
+    `This has been a RadioGraphics Reader summary.`,
+  ].filter(Boolean).join(' ');
 }
 
 function attemptJSONRecovery(str) {
@@ -1700,6 +1697,45 @@ function renderQA(pairs, d) {
   document.getElementById('qaSection').dataset.sub     = d?.subspecialty || '';
 }
 
+function updateAudioBtn() {
+  const btn = document.getElementById('addAudioBtn');
+  const openaiKey = document.getElementById('openaiKey').value.trim();
+  if (summaryData && !audioBlob && openaiKey) {
+    btn.style.display = '';
+    btn.disabled = false;
+    btn.textContent = '🎵 Add Audio';
+  } else {
+    btn.style.display = 'none';
+  }
+}
+
+async function generateAndAddAudio() {
+  const openaiKey = document.getElementById('openaiKey').value.trim();
+  if (!openaiKey)    { showActionToast('OpenAI key required for audio.', 'error'); return; }
+  if (!summaryData)  { showActionToast('Run the pipeline first.', 'error'); return; }
+
+  const btn = document.getElementById('addAudioBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Generating…';
+
+  try {
+    audioBlob = await callTTS(buildAudioScript(summaryData), openaiKey, document.getElementById('ttsVoice').value);
+    showAudio(audioBlob);
+
+    if (lastDriveFolderId && gAccessToken) {
+      await uploadFileToDrive(lastDriveFolderId, lastDriveFolderName + ' — Audio.mp3', 'audio/mpeg', audioBlob, gAccessToken);
+      showActionToast('Audio generated and saved to Drive ✓', 'success');
+    } else {
+      showActionToast('Audio generated ✓', 'success');
+    }
+    btn.style.display = 'none';
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = '🎵 Add Audio';
+    showActionToast('Audio failed: ' + e.message, 'error');
+  }
+}
+
 function downloadQA() {
   if (!qaData?.length) { showActionToast('No Q&A yet.', 'error'); return; }
   const el = document.getElementById('qaSection');
@@ -1712,7 +1748,21 @@ function downloadQA() {
 }
 
 // ── Google Drive — folder structure ─────────────────────────────
-async function createDriveFolder(name, parentId, token) {
+async function findOrCreateDriveFolder(name, parentId, token) {
+  // Search for existing folder with same name to avoid duplicates
+  const parentClause = parentId ? ` and '${parentId}' in parents` : '';
+  const q = encodeURIComponent(`name='${name.replace(/'/g,"\\'")}' and mimeType='application/vnd.google-apps.folder' and trashed=false${parentClause}`);
+  try {
+    const search = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,webViewLink)`, {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (search.ok) {
+      const { files } = await search.json();
+      if (files?.length) return files[0]; // reuse existing folder
+    }
+  } catch(e) { /* fall through to create */ }
+
+  // Create new folder
   const meta = { name, mimeType: 'application/vnd.google-apps.folder', ...(parentId ? { parents: [parentId] } : {}) };
   const res = await fetch('https://www.googleapis.com/drive/v3/files?fields=id,webViewLink', {
     method: 'POST',
@@ -1760,8 +1810,12 @@ async function saveToDriveFolder(structured, summaryTxt, pairs, pdf, audio) {
   const safeTitle = (structured.title||'Article').replace(/[/\\:*?"<>|]/g,'_').slice(0, 60);
   const folderName = `RadioGraphics — ${safeTitle} (${structured.year||''})`;
 
-  const folder = await createDriveFolder(folderName, parentId, gAccessToken);
+  const folder = await findOrCreateDriveFolder(folderName, parentId, gAccessToken);
   const fid = folder.id;
+
+  // Store for later use (e.g. adding audio after the fact)
+  lastDriveFolderId = fid;
+  lastDriveFolderName = folderName;
 
   await uploadFileToDrive(fid, folderName + ' — Summary.txt', 'text/plain', summaryTxt, gAccessToken);
   if (pairs?.length) await uploadFileToDrive(fid, folderName + ' — QA.txt', 'text/plain', buildQAText(pairs, structured), gAccessToken);
