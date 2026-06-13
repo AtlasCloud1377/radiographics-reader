@@ -1316,7 +1316,8 @@ async function runPipeline() {
     setStep('audio', 'active');
     try {
       const ttsText = buildAudioScript(structured);
-      audioBlob = await callTTS(ttsText, openaiKey, document.getElementById('ttsVoice').value);
+      audioBlob = await synthesizeAudio(ttsText, openaiKey, document.getElementById('ttsVoice').value,
+        (n, total) => setStep('audio', 'active', total > 1 ? `Part ${n}/${total}…` : ''));
       setStep('audio', 'done', (audioBlob.size / 1024).toFixed(0) + ' KB');
       showAudio(audioBlob);
     } catch(e) {
@@ -1344,7 +1345,7 @@ async function runPipeline() {
     }
   } else {
     setStep('drive', 'skipped', enableDrive ? (gClientId ? 'Sign in required' : 'No Client ID') : 'Disabled');
-    document.getElementById('lineRetryBtn').disabled = !gClientId;
+    document.getElementById('lineRetryBtn').disabled = false;
   }
 
   renderResults(structured);
@@ -1392,7 +1393,7 @@ async function callClaude(base64PDF, apiKey) {
       'anthropic-dangerous-direct-browser-access': 'true'
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 6000,
       messages: [{
         role: 'user',
@@ -1459,8 +1460,45 @@ function attemptJSONRecovery(str) {
 }
 
 // ── TTS ──────────────────────────────────────────────────────────
+// Split text into chunks under OpenAI's 4096-char limit, breaking on
+// sentence boundaries so each chunk ends cleanly.
+function splitForTTS(text, max = 4000) {
+  if (text.length <= max) return [text];
+  const sentences = text.match(/[^.!?]+[.!?]*\s*/g) || [text];
+  const chunks = [];
+  let cur = '';
+  for (const s of sentences) {
+    if (cur.length + s.length > max) {
+      if (cur) chunks.push(cur.trim());
+      // A single sentence longer than max — hard-split it.
+      if (s.length > max) {
+        for (let i = 0; i < s.length; i += max) chunks.push(s.slice(i, i + max).trim());
+        cur = '';
+      } else {
+        cur = s;
+      }
+    } else {
+      cur += s;
+    }
+  }
+  if (cur.trim()) chunks.push(cur.trim());
+  return chunks;
+}
+
+// Synthesize an arbitrarily long script by chunking and concatenating the MP3s.
+async function synthesizeAudio(text, apiKey, voice, onProgress) {
+  const chunks = splitForTTS(text);
+  const blobs = [];
+  for (let i = 0; i < chunks.length; i++) {
+    if (onProgress) onProgress(i + 1, chunks.length);
+    blobs.push(await callTTS(chunks[i], apiKey, voice));
+  }
+  // MP3 is frame-based, so naive concatenation plays back as one continuous track.
+  return new Blob(blobs, { type: 'audio/mpeg' });
+}
+
+// One TTS request for a single chunk (must already be under the 4096 limit).
 async function callTTS(text, apiKey, voice) {
-  // OpenAI TTS hard-caps input at 4096 characters — truncate to stay safe
   const input = text.length > 4096 ? text.slice(0, 4093) + '…' : text;
 
   // Abort if OpenAI stalls (e.g. while rate-limited) so the step never hangs
@@ -1587,29 +1625,29 @@ function renderResults(d) {
   body.innerHTML += `<div class="result-group-label">Article</div>`;
   body.innerHTML += `
     <div class="report-block meta-detail-block">
-      <div class="meta-detail-title">${d.title||'—'}</div>
-      <div class="meta-detail-sub">${d.authors||'—'} · ${d.year||'—'} · ${d.modality||'—'} · ${d.subspecialty||'—'}</div>
+      <div class="meta-detail-title">${esc(d.title)||'—'}</div>
+      <div class="meta-detail-sub">${esc(d.authors)||'—'} · ${esc(d.year)||'—'} · ${esc(d.modality)||'—'} · ${esc(d.subspecialty)||'—'}</div>
     </div>`;
   if (d.keywords?.length) {
-    body.innerHTML += `<div class="report-block"><h3>Keywords</h3><div class="tag-list">${d.keywords.map(k=>`<span class="tag">${k}</span>`).join('')}</div></div>`;
+    body.innerHTML += `<div class="report-block"><h3>Keywords</h3><div class="tag-list">${d.keywords.map(k=>`<span class="tag">${esc(k)}</span>`).join('')}</div></div>`;
   }
 
   // ── Group 2: Summary ─────────────────────────────────────────────
   body.innerHTML += `<div class="result-group-label" style="margin-top:24px">Summary</div>`;
 
-  if (d.clinicalPearl) body.innerHTML += block('⭐ Clinical Pearl', `<p>${d.clinicalPearl}</p>`);
-  if (d.background)    body.innerHTML += block('Background', `<p>${d.background}</p>`);
-  if (d.keyFindings?.length) body.innerHTML += block('Key Imaging Findings', '<ul>'+d.keyFindings.map(f=>`<li>${f}</li>`).join('')+'</ul>');
-  if (d.technique)     body.innerHTML += block('Technique / Protocol', `<p>${d.technique}</p>`);
+  if (d.clinicalPearl) body.innerHTML += block('⭐ Clinical Pearl', `<p>${esc(d.clinicalPearl)}</p>`);
+  if (d.background)    body.innerHTML += block('Background', `<p>${esc(d.background)}</p>`);
+  if (d.keyFindings?.length) body.innerHTML += block('Key Imaging Findings', '<ul>'+d.keyFindings.map(f=>`<li>${esc(f)}</li>`).join('')+'</ul>');
+  if (d.technique)     body.innerHTML += block('Technique / Protocol', `<p>${esc(d.technique)}</p>`);
 
   let twoCol = '';
-  if (d.differential?.length) twoCol += block('Differential Diagnosis', '<ul>'+d.differential.map(f=>`<li>${f}</li>`).join('')+'</ul>');
-  if (d.pitfalls?.length)     twoCol += block('Pitfalls & Mimickers',   '<ul>'+d.pitfalls.map(f=>`<li>${f}</li>`).join('')+'</ul>');
+  if (d.differential?.length) twoCol += block('Differential Diagnosis', '<ul>'+d.differential.map(f=>`<li>${esc(f)}</li>`).join('')+'</ul>');
+  if (d.pitfalls?.length)     twoCol += block('Pitfalls & Mimickers',   '<ul>'+d.pitfalls.map(f=>`<li>${esc(f)}</li>`).join('')+'</ul>');
   if (twoCol) body.innerHTML += `<div class="two-col">${twoCol}</div>`;
 
-  if (d.clinicalImplications) body.innerHTML += block('Clinical Implications', `<p>${d.clinicalImplications}</p>`);
-  if (d.teachingPoints?.length) body.innerHTML += block('📚 Teaching Points', '<ol>'+d.teachingPoints.map(t=>`<li>${t}</li>`).join('')+'</ol>');
-  if (d.recommendation) body.innerHTML += `<div class="report-block rec-block"><h3>💡 Recommendation for Residents</h3><p>${d.recommendation}</p></div>`;
+  if (d.clinicalImplications) body.innerHTML += block('Clinical Implications', `<p>${esc(d.clinicalImplications)}</p>`);
+  if (d.teachingPoints?.length) body.innerHTML += block('📚 Teaching Points', '<ol>'+d.teachingPoints.map(t=>`<li>${esc(t)}</li>`).join('')+'</ol>');
+  if (d.recommendation) body.innerHTML += `<div class="report-block rec-block"><h3>💡 Recommendation for Residents</h3><p>${esc(d.recommendation)}</p></div>`;
 
   document.getElementById('rawText').value = lineText;
   document.getElementById('results').classList.add('visible');
@@ -1617,6 +1655,13 @@ function renderResults(d) {
 
 function block(title, inner) {
   return `<div class="report-block"><h3>${title}</h3>${inner}</div>`;
+}
+
+// Escape model output before injecting via innerHTML.
+// Radiology text uses < > & constantly (e.g. "lesion <2 cm", "T2 > T1").
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"]/g, c =>
+    ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
 }
 
 function showAudio(blob) {
@@ -1701,8 +1746,8 @@ function buildQAText(pairs, d) {
 function renderQA(pairs, d) {
   document.getElementById('qaBody').innerHTML = pairs.map((p, i) => `
     <div class="qa-item">
-      <div class="qa-q"><span class="qa-num">Q${i+1}</span>${p.q}</div>
-      <div class="qa-a">${p.a}</div>
+      <div class="qa-q"><span class="qa-num">Q${i+1}</span>${esc(p.q)}</div>
+      <div class="qa-a">${esc(p.a)}</div>
     </div>`).join('');
   document.getElementById('qaSection').classList.add('visible');
   // store for download
@@ -1734,7 +1779,8 @@ async function generateAndAddAudio() {
   btn.textContent = '⏳ Generating…';
 
   try {
-    audioBlob = await callTTS(buildAudioScript(summaryData), openaiKey, document.getElementById('ttsVoice').value);
+    audioBlob = await synthesizeAudio(buildAudioScript(summaryData), openaiKey, document.getElementById('ttsVoice').value,
+      (n, total) => { if (total > 1) btn.textContent = `⏳ Part ${n}/${total}…`; });
     showAudio(audioBlob);
 
     if (lastDriveFolderId && gAccessToken) {
@@ -1788,9 +1834,16 @@ async function findOrCreateDriveFolder(name, parentId, token) {
   return res.json();
 }
 
+async function findFileInFolder(folderId, name, token) {
+  const q = encodeURIComponent(`name='${name.replace(/'/g,"\\'")}' and '${folderId}' in parents and trashed=false`);
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)`, {
+    headers: { 'Authorization': 'Bearer ' + token }
+  });
+  if (res.ok) { const { files } = await res.json(); if (files?.length) return files[0].id; }
+  return null;
+}
+
 async function uploadFileToDrive(folderId, name, mimeType, content, token) {
-  const meta = JSON.stringify({ name, mimeType, parents: [folderId] });
-  const boundary = 'rg_' + Date.now();
   const enc = new TextEncoder();
 
   let contentBytes;
@@ -1798,10 +1851,26 @@ async function uploadFileToDrive(folderId, name, mimeType, content, token) {
   else if (typeof content === 'string') contentBytes = enc.encode(content).buffer;
   else                               contentBytes = content;
 
+  // Upsert: if a file with this name already exists in the folder, overwrite its
+  // content in place instead of creating a duplicate.
+  const existingId = await findFileInFolder(folderId, name, token);
+  if (existingId) {
+    const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${existingId}?uploadType=media&fields=id,name,webViewLink`, {
+      method: 'PATCH',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': mimeType },
+      body: contentBytes,
+    });
+    if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.error?.message || `Update HTTP ${res.status}`); }
+    return res.json();
+  }
+
+  // Create a new file (multipart: metadata + content).
+  const meta = JSON.stringify({ name, mimeType, parents: [folderId] });
+  const boundary = 'rg_' + Date.now();
+  const cb    = new Uint8Array(contentBytes);
   const head1 = enc.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n`);
   const head2 = enc.encode(`--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`);
   const tail  = enc.encode(`\r\n--${boundary}--`);
-  const cb    = new Uint8Array(contentBytes);
 
   const out = new Uint8Array(head1.byteLength + head2.byteLength + cb.byteLength + tail.byteLength);
   let off = 0;
