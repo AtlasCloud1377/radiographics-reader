@@ -108,6 +108,18 @@
     color: var(--muted);
   }
 
+  .version-badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 6px;
+    background: var(--surface2);
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+  }
+
   .header-right {
     display: flex;
     align-items: center;
@@ -471,6 +483,47 @@
 
   .step-label { color: var(--text); flex: 1; }
   .step-note  { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+
+  /* ── Cost panel ── */
+  .cost-panel {
+    display: none;
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+  }
+  .cost-panel.visible { display: block; }
+  .cost-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .cost-total {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--accent2);
+  }
+  .cost-rows { display: flex; flex-direction: column; gap: 4px; }
+  .cost-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .cost-row .cost-amt { font-family: var(--mono); color: var(--text); }
+  .cost-note {
+    margin-top: 8px;
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
 
   /* ── Toasts ── */
   .toast {
@@ -896,7 +949,7 @@
     <div class="logo">📡</div>
     <div>
       <div class="header-title">RadioGraphics <span>Reader</span></div>
-      <div class="header-sub">PDF → Summary → Audio → Drive</div>
+      <div class="header-sub">PDF → Summary → Audio → Drive <span class="version-badge">v1.0</span></div>
     </div>
   </div>
   <div class="header-right">
@@ -1056,6 +1109,19 @@
           <span class="step-note" id="note-drive"></span>
         </div>
       </div>
+
+      <!-- ── Estimated cost ── -->
+      <div class="cost-panel" id="costPanel">
+        <div class="cost-head">
+          <span>💰 Estimated cost</span>
+          <span class="cost-total" id="costTotal">$0.00</span>
+        </div>
+        <div class="cost-rows" id="costRows"></div>
+        <div class="cost-note">
+          Claude usage is metered from the API response; OpenAI &amp; Drive are estimated. Actual billing may differ.
+        </div>
+      </div>
+
       <div id="pipelineToast" class="toast"></div>
     </div>
   </div>
@@ -1312,10 +1378,12 @@ async function runPipeline() {
   }
 
   // ── Step 4: TTS ──
+  let ttsChars = 0;
   if (enableAudio && openaiKey) {
     setStep('audio', 'active');
     try {
       const ttsText = buildAudioScript(structured);
+      ttsChars = ttsText.length;
       audioBlob = await synthesizeAudio(ttsText, openaiKey, document.getElementById('ttsVoice').value,
         (n, total) => setStep('audio', 'active', total > 1 ? `Part ${n}/${total}…` : ''));
       setStep('audio', 'done', (audioBlob.size / 1024).toFixed(0) + ' KB');
@@ -1350,6 +1418,7 @@ async function runPipeline() {
 
   renderResults(structured);
   if (qaData?.length) renderQA(qaData, structured);
+  renderCost({ usage: structured._usage, ttsChars });
   updateAudioBtn();
   document.getElementById('runBtn').disabled = false;
 }
@@ -1428,7 +1497,58 @@ async function callClaude(base64PDF, apiKey) {
   }
 
   parsed.wordCount = raw.split(/\s+/).length;
+  parsed._usage = data.usage || null;   // { input_tokens, output_tokens, ... }
   return parsed;
+}
+
+// ── Cost estimation ──────────────────────────────────────────────
+// Pricing (USD). Claude Sonnet 4.6: $3 in / $15 out per 1M tokens.
+// gpt-4o-mini-tts is billed per token, but OpenAI quotes ~$0.015/min of audio,
+// so we estimate minutes from the narration length (~825 chars/min spoken).
+const PRICING = {
+  claudeIn:    3.00 / 1e6,   // $ per input token
+  claudeOut:  15.00 / 1e6,   // $ per output token
+  ttsPerMin:   0.015,        // $ per minute of synthesized audio
+};
+const TTS_CHARS_PER_MIN = 825;   // ~150 wpm narration
+
+function renderCost({ usage, ttsChars }) {
+  const rows = [];
+  let total = 0;
+
+  // Claude — from real usage if available
+  if (usage) {
+    const inTok  = usage.input_tokens  || 0;
+    const outTok = usage.output_tokens || 0;
+    const claudeCost = inTok * PRICING.claudeIn + outTok * PRICING.claudeOut;
+    total += claudeCost;
+    rows.push({
+      label: `Claude Sonnet 4.6 — ${inTok.toLocaleString()} in / ${outTok.toLocaleString()} out`,
+      amt: claudeCost,
+    });
+  }
+
+  // OpenAI TTS — estimate audio minutes from narration length
+  if (ttsChars > 0) {
+    const mins = ttsChars / TTS_CHARS_PER_MIN;
+    const ttsCost = mins * PRICING.ttsPerMin;
+    total += ttsCost;
+    rows.push({
+      label: `OpenAI gpt-4o-mini-tts — ~${mins.toFixed(1)} min`,
+      amt: ttsCost,
+    });
+  }
+
+  // Google Drive — free
+  rows.push({ label: 'Google Drive — storage & API', amt: 0, free: true });
+
+  document.getElementById('costRows').innerHTML = rows.map(r => `
+    <div class="cost-row">
+      <span>${esc(r.label)}</span>
+      <span class="cost-amt">${r.free ? 'free' : '$' + r.amt.toFixed(4)}</span>
+    </div>`).join('');
+  document.getElementById('costTotal').textContent = '$' + total.toFixed(4);
+  document.getElementById('costPanel').classList.add('visible');
 }
 
 function buildAudioScript(d) {
@@ -1497,6 +1617,12 @@ async function synthesizeAudio(text, apiKey, voice, onProgress) {
   return new Blob(blobs, { type: 'audio/mpeg' });
 }
 
+// Fixed narration style for gpt-4o-mini-tts (steerable tone).
+const TTS_INSTRUCTIONS =
+  'Speak in a calm, clear, professional tone, like a radiologist narrating an ' +
+  'educational lecture. Measured, unhurried pace with natural pauses between ideas. ' +
+  'Pronounce medical and anatomical terms precisely.';
+
 // One TTS request for a single chunk (must already be under the 4096 limit).
 async function callTTS(text, apiKey, voice) {
   const input = text.length > 4096 ? text.slice(0, 4093) + '…' : text;
@@ -1513,7 +1639,7 @@ async function callTTS(text, apiKey, voice) {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + apiKey
       },
-      body: JSON.stringify({ model: 'tts-1', input, voice: voice, response_format: 'mp3' }),
+      body: JSON.stringify({ model: 'gpt-4o-mini-tts', input, voice: voice, instructions: TTS_INSTRUCTIONS, response_format: 'mp3' }),
       signal: ctrl.signal
     });
   } catch(e) {
@@ -1681,6 +1807,7 @@ function setStep(id, state, note='') {
 
 function resetSteps() {
   ['read','claude','qa','audio','drive'].forEach(id => setStep(id,'',''));
+  document.getElementById('costPanel').classList.remove('visible');
 }
 
 function showPipelineToast(msg, type) {
